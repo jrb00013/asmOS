@@ -1,28 +1,51 @@
+# Compiler and Assembler
 CC = gcc
 AS = nasm
-CFLAGS = -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin
-LDFLAGS = -T linker.ld -ffreestanding -nostdlib
+LD = ld
 
-# Files
-SRC_C = kernel.c memory_manager.c shell.c scheduler.c
-SRC_ASM = boot.asm syscalls.asm
-OBJ_C = $(SRC_C:.c=.o)
-OBJ_ASM = $(SRC_ASM:.asm=.o)
-EXEC = os.bin
+# Compilation Flags
+CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin
+LDFLAGS = -T linker/linker.ld
 
-# Compilation rules
-all: $(EXEC)
+# Directories
+SRC_DIR = src
+BOOT_DIR = boot
+BUILD_DIR = build
 
-$(EXEC): $(OBJ_C) $(OBJ_ASM)
-    $(CC) $(OBJ_C) $(OBJ_ASM) $(LDFLAGS) -o $(EXEC)
-    # Add bootloader and kernel binary merging
-    cat boot.asm kernel.bin > os.bin
+# Source Files
+SRC_C = $(wildcard $(SRC_DIR)/*.c)
+SRC_ASM = $(wildcard $(BOOT_DIR)/*.asm)
 
-%.o: %.c
-    $(CC) $(CFLAGS) -c $< -o $@
+# Object Files
+OBJ_C = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRC_C))
+OBJ_ASM = $(patsubst $(BOOT_DIR)/%.asm, $(BUILD_DIR)/%.o, $(SRC_ASM))
+OBJS = $(OBJ_C) $(OBJ_ASM)
 
-%.o: %.asm
-    $(AS) -f elf32 $< -o $@
+# Output File
+KERNEL_BIN = $(BUILD_DIR)/kernel.bin
+OS_BIN = $(BUILD_DIR)/os.bin
 
+# Rules
+all: $(OS_BIN)
+
+# Compile C source files
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Assemble Assembly source files
+$(BUILD_DIR)/%.o: $(BOOT_DIR)/%.asm
+	@mkdir -p $(BUILD_DIR)
+	$(AS) -f elf32 $< -o $@
+
+# Link everything
+$(KERNEL_BIN): $(OBJS)
+	$(LD) $(LDFLAGS) -o $@
+
+# Merge bootloader and kernel
+$(OS_BIN): $(KERNEL_BIN)
+	cat $(BOOT_DIR)/boot.asm $(KERNEL_BIN) > $(OS_BIN)
+
+# Clean build files
 clean:
-    rm -f $(OBJ_C) $(OBJ_ASM) $(EXEC)
+	rm -rf $(BUILD_DIR)
