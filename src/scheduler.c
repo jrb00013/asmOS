@@ -21,3 +21,7 @@ void run_scheduler(void) {
         current_task = (current_task + 1) % task_count;  // Move to the next task
     }
 }
+
+void init_scheduler(void) {
+    printf("Scheduler Initialized.\n");
+}
