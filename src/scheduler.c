@@ -1,4 +1,4 @@
-#include "scheduler.h"
+#include "include/scheduler.h"
 
 #define MAX_TASKS 5
 static void (*task_list[MAX_TASKS])(void);  // Array of task functions
