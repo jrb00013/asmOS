@@ -1,5 +1,5 @@
-#include "shell.h"
-#include "uart.h"
+#include "include/shell.h"
+#include "include/uart.h"
 
 // Simple shell that accepts commands and prints a prompt
 void init_shell(void) {
