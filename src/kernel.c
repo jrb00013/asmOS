@@ -1,7 +1,7 @@
-#include "msp.h"
-#include "shell.h"
-#include "memory_manager.h"
-#include "scheduler.h"
+#include "include/msp.h"
+#include "include/shell.h"
+#include "include/memory_manager.h"
+#include "include/scheduler.h"
 
 // Initialize kernel components
 void init_kernel(void) {
