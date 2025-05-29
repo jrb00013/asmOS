@@ -4,7 +4,7 @@
 load_kernel:
     pusha
     
-    ; Reset disk system
+      
     mov ah, 0x00
     mov dl, 0x80            ; First hard disk
     int 0x13
