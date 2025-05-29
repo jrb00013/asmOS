@@ -15,6 +15,7 @@ The OS should start automatically
 
 ## 📦 Requirements:
 - PS2
+- DMS3 Modchip  (or any ModChip that works on the PS2)
 - CD
 - Linux Terminal
 - NASM for Assembly compilation
