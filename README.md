@@ -1,23 +1,22 @@
 
-# Assembly OS (Shell + Memory Manager) 💻
+# ARM Assembly OS (Shell + Memory Manager) 
 
 Build an OS with basic shell and memory management in C & Assembly.
 
-## 🚀 Main Components:
-- **boot.asm**: Initializes the system.
-- **kernel.c**: Kernel logic.
-- **memory_manager.c**: Dynamic memory allocation.
-- **syscalls.asm**: Handles system calls.
-- **shell.c**: Command-line interface.
-
-^Uses ARM Architecture^
-^Utilize documentation for the registers^
-
 ## 🛠️ How to Run:
-1. Compile using the `Makefile`.
-2. Run on an emulator or real hardware.
+
+In Project Directory:
+1. make                 (Compile)
+2. make run        (Testing in QEMU)
+3. growisofs -dvd-compat -Z /dev/sr0=disk/os.img                (Burn ISO Image File to CD Disk)
+4. On PS2: Insert the CD, Boot with modchip enabled
+
+The OS should start automatically
 
 ## 📦 Requirements:
+- PS2
+- CD
+- Linux Terminal
 - NASM for Assembly compilation
 - GCC for C compilation
 
