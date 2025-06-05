@@ -1,7 +1,7 @@
 # Compiler and Assembler
-CC = gcc
+CC = i686-elf-gcc
 AS = nasm
-LD = ld
+LD = /usr/local/Cellar/i686-elf-binutils/2.43.1/i686-elf/bin/ld
 
 # Tools
 DD = dd
@@ -11,7 +11,7 @@ MCOPY = mcopy
 # Compilation Flags
 CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude
 ASFLAGS = -f elf32
-LDFLAGS = -m elf_i386 -T linker.ld
+LDFLAGS = -m elf_i386 -T llinker/linker.ld
 
 # Directories
 SRC_DIR = src
@@ -22,7 +22,7 @@ DISK_DIR = disk
 
 # Source Files
 SRC_C = $(wildcard $(SRC_DIR)/*.c)
-SRC_ASM = $(wildcard $(BOOT_DIR)/*.asm)
+SRC_ASM = $(filter-out $(BOOT_DIR)/print.asm $(BOOT_DIR)/disk.asm, $(wildcard $(BOOT_DIR)/*.asm))
 
 # Object Files
 OBJ_C = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRC_C))
@@ -46,16 +46,25 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 # Assemble bootloader (as flat binary)
 $(BUILD_DIR)/boot.o: $(BOOT_DIR)/boot.asm
 	@mkdir -p $(BUILD_DIR)
-	$(AS) -f bin $< -o $@
+	$(AS) -f bin -I$(BOOT_DIR)/ $< -o $@
+
 
 # Assemble other ASM files (as ELF)
 $(BUILD_DIR)/%.o: $(BOOT_DIR)/%.asm
 	@mkdir -p $(BUILD_DIR)
 	$(AS) $(ASFLAGS) $< -o $@
 
+$(BUILD_DIR)/kernel.elf: $(OBJS)
+	$(LD) -m elf_i386 -T llinker/linker.ld -o $@ $^
+
+$(KERNEL_BIN): $(BUILD_DIR)/kernel.elf
+	objcopy -O binary $< $@
+
 # Link kernel
-$(KERNEL_BIN): $(OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^
+KERNEL_OBJS = $(filter-out $(BUILD_DIR)/boot.o, $(OBJS))
+
+# $(KERNEL_BIN): $(KERNEL_OBJS)
+# 	$(LD) -T llinker/linker.ld -o $@ -oformat binary $^
 
 # Create disk image
 $(OS_IMAGE): $(KERNEL_BIN) $(BUILD_DIR)/boot.o
@@ -69,6 +78,6 @@ $(OS_IMAGE): $(KERNEL_BIN) $(BUILD_DIR)/boot.o
 run: $(OS_IMAGE)
 	qemu-system-i386 -drive format=raw,file=$<
 
-# Clean build files
+# Clean build files ^^ format=raw,file=disk/os.img
 clean:
 	rm -rf $(BUILD_DIR) $(DISK_DIR)

@@ -1,5 +1,9 @@
 [BITS 32]
-[GLOBAL print_string, exit_program, read_key, get_memory_info]
+
+global print_string
+global exit_program
+global read_key
+global get_memory_info
 
 section .text
 
@@ -7,9 +11,7 @@ section .text
 ; print_string - Print a string to screen
 ; Args: ESI -> Null-terminated string
 ; ============================
-print_string:
-    pusha
-    mov ah, 0x0E            ; BIOS teletype function
+
 .print_loop:
     lodsb                   ; Load next character
     test al, al             ; Check for null terminator

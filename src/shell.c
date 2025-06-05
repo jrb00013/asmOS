@@ -1,6 +1,7 @@
-#include "include/shell.h"
-#include "include/fs.h"
-#include "include/syscalls.h"
+#include "shell.h"
+#include "fs.h"
+#include "syscalls.h"
+#include "kernel.h"
 
 // Shell commands structure
 typedef struct {
@@ -24,8 +25,8 @@ static shell_command_t commands[] = {
 };
 
 void init_shell(void) {
-    printf("\nPS2 x86 Shell\n");
-    printf("Type 'help' for available commands\n");
+    kprint("\nPS2 x86 Shell\n");
+    kprint("Type 'help' for available commands\n");
 }
 
 void start_shell(void) {
@@ -34,18 +35,18 @@ void start_shell(void) {
     char args[64];
     
     while (1) {
-        printf("> ");
+        kprint("> ");
         sys_read_line(input, sizeof(input));
         
         // Parse command and arguments
-        if (sscanf(input, "%63s %63[^\n]", cmd, args) < 1) {
+        if (ksscanf(input, "%63s %63[^\n]", cmd, args) < 1) {
             continue;
         }
         
         // Find and execute command
         int found = 0;
         for (int i = 0; commands[i].name; i++) {
-            if (strcmp(cmd, commands[i].name) == 0) {
+            if (ksstrcmp(cmd, commands[i].name) == 0) {
                 commands[i].func(args);
                 found = 1;
                 break;
@@ -53,31 +54,31 @@ void start_shell(void) {
         }
         
         if (!found) {
-            printf("Unknown command: %s\n", cmd);
+            kprintf("Unknown command: %s\n", cmd);
         }
     }
 }
 
 // Command functions
 static void cmd_help(char *args) {
-    printf("Available commands:\n");
+    kprint("Available commands:\n");
     for (int i = 0; commands[i].name; i++) {
-        printf("  %s\n", commands[i].name);
+        kprintf("  %s\n", commands[i].name);
     }
 }
 
 static void cmd_ls(char *args) {
-    printf("Directory listing:\n");
+    kprint("Directory listing:\n");
     fat12_list_files();  // Uses our FAT12 implementation
 }
 
 static void cmd_meminfo(char *args) {
     uint32_t mem_kb;
     asm volatile("call get_memory_info" : "=a"(mem_kb));
-    printf("Memory: %u KB available\n", mem_kb);
+    kprintf("Memory: %u KB available\n", mem_kb);
 }
 
 static void cmd_exit(char *args) {
-    printf("Shutting down...\n");
+    kprint("Shutting down...\n");
     sys_exit(0);
 }

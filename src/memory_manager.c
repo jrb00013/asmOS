@@ -1,9 +1,6 @@
-#include "include/memory_manager.h"
-#include <stdio.h>
+#include "memory_manager.h"
 #include <stdint.h>
 
-#define MEMORY_POOL_SIZE (1024 * 1024)  // 1MB pool
-#define ALIGNMENT 4
 
 
 static char memory_pool[MEMORY_POOL_SIZE];

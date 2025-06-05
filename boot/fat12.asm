@@ -1,160 +1,201 @@
-[BITS 16]
+[BITS 32]
+section .text
 
-; Load kernel from FAT12 filesystem
-load_kernel:
+; Exported functions
+global load_kernel_from_disk
+global init_fat12
+global fat12_list_files
+global disable_interrupts_asm
+global enable_interrupts_asm
+
+; Imported functions
+extern print_string
+
+; Constants
+KERNEL_LOAD_SEGMENT equ 0x1000
+
+; Data section
+section .data
+kernel_filename db "KERNEL  BIN",0
+disk_error_msg db "Disk error!",0
+read_error_msg db "Read error!",0
+file_not_found_msg db "Kernel not found!",0
+sectors_per_track dd 18
+heads_per_cylinder dd 2
+current_cluster dd 0
+kernel_size dd 0
+
+; Uninitialized data
+section .bss
+buffer resb 512*14  ; Enough for root directory
+
+; Code section
+section .text
+
+disable_interrupts_asm:
+    cli
+    ret
+
+enable_interrupts_asm:
+    sti
+    ret
+
+init_fat12:
+    ret
+
+load_kernel_from_disk:
     pusha
     
-      
-    mov ah, 0x00
-    mov dl, 0x80            ; First hard disk
+    ; Reset disk system
+    mov eax, 0x00
+    mov edx, 0x80          ; First hard disk
     int 0x13
     jc .disk_error
     
-    ; Load root directory
-    mov ax, 19              ; First sector of root directory
-    mov bx, buffer
-    mov cx, 14              ; Number of sectors to read
+    ; Load root directory (LBA 19, 14 sectors)
+    mov eax, 19             ; First sector of root directory
+    mov ebx, buffer
+    mov ecx, 14             ; Number of sectors to read
     call read_sectors
     
     ; Search for kernel file
-    mov di, buffer
-    mov cx, 224             ; Max root directory entries
-    mov si, kernel_filename
+    mov edi, buffer
+    mov ecx, 224            ; Max root directory entries
     
 .search_loop:
-    push cx
-    push di
-    mov cx, 11             ; Filename length in FAT12
+    push ecx
+    push edi
+    mov ecx, 11             ; Filename length
+    mov esi, kernel_filename
     repe cmpsb
-    pop di
-    pop cx
+    pop edi
+    pop ecx
     je .found_kernel
     
-    add di, 32             ; Next directory entry
+    add edi, 32             ; Next directory entry
     loop .search_loop
     
     jmp .file_not_found
     
 .found_kernel:
-    ; Load FAT
-    mov ax, 1               ; FAT starts at sector 1
-    mov bx, buffer
-    mov cx, 9               ; Sectors per FAT
+    ; Load FAT (LBA 1, 9 sectors)
+    mov eax, 1              ; FAT starts at sector 1
+    mov ebx, buffer
+    mov ecx, 9              ; Sectors per FAT
     call read_sectors
     
     ; Load kernel file
-    mov ax, word [di + 26]  ; First cluster
-    mov bx, 0x1000          ; Load to segment 0x1000
-    mov es, bx
-    xor bx, bx              ; Offset 0
+    movzx eax, word [edi + 26]  ; First cluster
+    mov ebx, KERNEL_LOAD_SEGMENT
+    mov es, ebx
+    xor ebx, ebx            ; Offset 0
     
 .load_cluster:
     ; Convert cluster to LBA
-    push ax
-    add ax, 31              ; Data sector = cluster + 31
+    push eax
+    add eax, 31             ; Data sector = cluster + 31
     
     ; Read sector
-    mov cx, 1
+    mov ecx, 1
     call read_sectors
     
     ; Get next cluster
-    pop ax
+    pop eax
     call get_next_cluster
-    cmp ax, 0xFF8           ; End of file?
+    cmp eax, 0xFF8          ; End of file?
     jb .load_cluster
     
     ; Store kernel size
-    mov [kernel_size], bx
+    mov [kernel_size], ebx
     
     popa
     ret
     
 .disk_error:
-    mov si, disk_error_msg
+    mov esi, disk_error_msg
     call print_string
     jmp $
     
 .file_not_found:
-    mov si, file_not_found_msg
+    mov esi, file_not_found_msg
     call print_string
     jmp $
 
-; Helper functions
 read_sectors:
-    ; AX = LBA, ES:BX = buffer, CX = sector count
+    ; eax = LBA, ebx = buffer, ecx = sector count
     pusha
-    mov di, 5               ; Retry count
+    mov edi, 5              ; Retry count
     
 .retry:
-    push ax
-    push cx
-    push bx
+    push eax
+    push ecx
+    push ebx
     
     ; Convert LBA to CHS
-    xor dx, dx
-    div word [sectors_per_track]
-    inc dl
+    xor edx, edx
+    div dword [sectors_per_track]
+    inc edx
     mov cl, dl              ; Sector
-    xor dx, dx
-    div word [heads_per_cylinder]
+    xor edx, edx
+    div dword [heads_per_cylinder]
     mov dh, dl              ; Head
     mov ch, al              ; Cylinder
     
     ; BIOS read sectors
     mov ah, 0x02
     mov al, 1               ; Sectors to read
-    pop bx
-    pop cx
-    push cx
-    push bx
+    pop ebx
+    pop ecx
+    push ecx
+    push ebx
     mov dl, 0x80            ; Drive number
     
     int 0x13
     jnc .success
     
     ; Error occurred
-    dec di
+    dec edi
     jz .read_error
     
     ; Reset disk and retry
     xor ah, ah
     int 0x13
-    pop bx
-    pop cx
-    pop ax
+    pop ebx
+    pop ecx
+    pop eax
     jmp .retry
     
 .success:
-    pop bx
-    pop cx
-    pop ax
+    pop ebx
+    pop ecx
+    pop eax
     
     ; Update buffer and LBA
-    add bx, 512
-    inc ax
+    add ebx, 512
+    inc eax
     loop read_sectors
     
     popa
     ret
     
 .read_error:
-    mov si, read_error_msg
+    mov esi, read_error_msg
     call print_string
     jmp $
 
 get_next_cluster:
-    ; AX = current cluster, returns next cluster in AX
-    push bx
-    push cx
+    ; eax = current cluster, returns next cluster in eax
+    push ebx
+    push ecx
     
     ; Calculate FAT offset
-    mov bx, ax
-    shr bx, 1               ; Divide by 2
-    add bx, ax              ; Multiply by 3/2
+    mov ebx, eax
+    shr ebx, 1              ; Divide by 2
+    add ebx, eax            ; Multiply by 3/2
     
-    mov ax, [buffer + bx]
+    mov ax, [buffer + ebx]
     
-    test word [current_cluster], 1
+    test dword [current_cluster], 1
     jz .even_cluster
     
 .odd_cluster:
@@ -165,16 +206,11 @@ get_next_cluster:
     and ax, 0x0FFF
     
 .done:
-    pop cx
-    pop bx
+    movzx eax, ax
+    pop ecx
+    pop ebx
     ret
 
-; Data
-kernel_filename db "KERNEL  BIN"
-disk_error_msg db "Disk error!", 0x0D, 0x0A, 0
-read_error_msg db "Read error!", 0x0D, 0x0A, 0
-file_not_found_msg db "Kernel not found!", 0x0D, 0x0A, 0
-sectors_per_track dw 18
-heads_per_cylinder dw 2
-current_cluster dw 0
-buffer:                     ; Disk read buffer
+fat12_list_files:
+    ; Implement your file listing functionality
+    ret

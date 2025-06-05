@@ -1,7 +1,9 @@
-#include "include/scheduler.h"
-#include "include/msp.h"
+#include "scheduler.h"
+#include "msp.h"
+#include "kernel.h"
+#include "memory_manager.h"
 
-#define MAX_TASKS 8  // Increased from 5
+
 static struct {
     void (*func)(void);
     uint32_t esp;  // Stack pointer for context switching
@@ -13,7 +15,7 @@ static int current_task = 0;
 void add_task(void (*task_func)(void)) {
     if (task_count < MAX_TASKS) {
         // Allocate stack for the task
-        uint8_t *stack = malloc(1024);
+        uint8_t *stack = (uint8_t*)malloc(1024);
         if (!stack) return;
         
         // Initialize task context
@@ -47,5 +49,5 @@ void run_scheduler(void) {
 }
 
 void init_scheduler(void) {
-    printf("Scheduler: %d tasks registered\n", task_count);
+    kprintf("Scheduler: %d tasks registered\n", task_count);
 }

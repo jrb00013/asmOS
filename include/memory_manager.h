@@ -3,7 +3,9 @@
 
 #include <stddef.h>  // For size_t
 
-#define MEMORY_POOL_SIZE 1024  // Adjust as needed
+
+#define MEMORY_POOL_SIZE (1024 * 1024)  // 1MB pool
+#define ALIGNMENT 4
 
 // Memory block structure for simple memory management
 typedef struct mem_block {

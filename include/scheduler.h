@@ -2,7 +2,9 @@
 #define SCHEDULER_H
 
 // Define the maximum number of tasks that can be scheduled
-#define MAX_TASKS 5
+#define MAX_TASKS 8
+
+
 
 // Declare the task scheduling functions
 void add_task(void (*task_func)(void));  // Add a task to the scheduler
