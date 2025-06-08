@@ -6,42 +6,37 @@ MEMORY {
 
 SECTIONS {
     . = 0x10000;
-    
-    /* Read-only sections */
+
     .text : ALIGN(4K) {
         *(.text)
-    } > RAM
-    
+    } > RAM :text
+
     .rodata : ALIGN(4K) {
         *(.rodata*)
-    } > RAM
-    
-    /* Read-write sections */
+    } > RAM :rodata
+
     .data : ALIGN(4K) {
         *(.data)
-    } > RAM
-    
+    } > RAM :data
+
     .bss : ALIGN(4K) {
         *(.bss)
         *(COMMON)
-    } > RAM
-    
-    /* Stack */
+    } > RAM :bss
+
     . = ALIGN(4K);
-    _stack_start = . + 4K;  /* 4KB stack */
-    
-    /* Discard unnecessary sections */
+    _stack_start = . + 4K;
+
     /DISCARD/ : {
-        *(.comment)
-        *(.note*)
         *(.eh_frame)
+        *(.note*)
+        *(.comment)
     }
 }
 
-/* Define program headers for proper segment permissions */
 PHDRS {
-    text PT_LOAD FLAGS((1 << 0) | (1 << 2)); /* RX */
-    rodata PT_LOAD FLAGS(1 << 2);            /* R */
-    data PT_LOAD FLAGS((1 << 1) | (1 << 2)); /* RW */
-    bss PT_LOAD FLAGS((1 << 1) | (1 << 2));  /* RW */
+    text PT_LOAD FLAGS(5);   /* R-X */
+    rodata PT_LOAD FLAGS(4); /* R-- */
+    data PT_LOAD FLAGS(6);   /* RW- */
+    bss PT_LOAD FLAGS(6);    /* RW- */
 }

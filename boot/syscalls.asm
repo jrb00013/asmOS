@@ -4,6 +4,8 @@ global print_string
 global exit_program
 global read_key
 global get_memory_info
+global sys_read_line
+global sys_exit
 
 section .text
 
@@ -11,16 +13,57 @@ section .text
 ; print_string - Print a string to screen
 ; Args: ESI -> Null-terminated string
 ; ============================
+sys_read_line:
+    push ebp
+    mov ebp, esp
+
+    mov edi, [ebp + 8]   ; buffer pointer
+    mov ecx, [ebp + 12]  ; max_len
+
+.read_loop:
+    ; BIOS read char into AL
+    mov ah, 0x00
+    int 0x16
+
+    ; Store char into buffer
+    mov [edi], al
+    cmp al, 0x0D         ; Enter key?
+    je .done
+
+    ; Print character (BIOS teletype)
+    mov ah, 0x0E
+    int 0x10
+
+    inc edi
+    loop .read_loop
+
+.done:
+    mov byte [edi], 0    ; null-terminate
+    mov eax, [ebp + 8]   ; return buffer pointer
+    pop ebp
+    ret
+
+sys_exit:
+    ; Print "Exiting..." and halt
+    mov si, exit_msg
 
 .print_loop:
-    lodsb                   ; Load next character
-    test al, al             ; Check for null terminator
-    jz .print_done
-    int 0x10                ; BIOS video interrupt
+    mov al, [esi]
+    test al, al
+    jz .halt
+    mov ah, 0x0E
+    int 0x10
+    inc esi
     jmp .print_loop
+
 .print_done:
     popa
     ret
+
+.halt:
+    cli
+    hlt
+    jmp .halt
 
 ; ============================
 ; read_key - Read a key from PS2 keyboard
@@ -80,3 +123,6 @@ exit_program:
     or eax, ebx             ; Combine with exit code
     int 0x21                ; DOS interrupt
     hlt
+
+section .rodata
+exit_msg db "Exiting...", 0x0D, 0x0A, 0
