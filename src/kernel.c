@@ -22,20 +22,27 @@ int cursor_col = 0;
 // Kernel entry point with proper initialization sequence
 void kernel_main(void) {
     // Initialize critical components first
+    kprint("KERNEL MAIN STARTED\n");  
     disable_interrupts_asm();
+    kprint("init_memory_manager() running...\n");
     init_memory_manager();
+    kprint("LOAD kernel_from_disk done\n");
     load_kernel_from_disk();
     
     // Initialize system components
+    kprint("INITIALIZING SCHEDULER and FAT12 FILE...\n");
     init_scheduler();
     init_fat12();  // Initialize filesystem
+    
+    kprint("INITIALIZING SHELL...\n");
     init_shell();
 
+    kprint("show_boot_splash()...\n");
     show_boot_splash(); 
     
-    // enable interrupts and start system
+    // Enable interrupts and start system
     enable_interrupts_asm();
-    kprint("PS2 x86 OS Kernel v1.0\n");
+    kprint("PS2 x86 OS Kernel v1.0\argen");
     
     start_shell();
     // Catch
@@ -144,6 +151,42 @@ void kprint_char(char c) {
 void kprint(const char *str) {
     for (int i = 0; str[i] != '\0'; i++) {
         kprint_char(str[i]);
+    }
+}
+
+
+void kprint_char_color(char c, uint8_t color) {
+    if (c == '\n') {
+        cursor_row++;
+        cursor_col = 0;
+    } else {
+        int index = cursor_row * VGA_WIDTH + cursor_col;
+        vga_buffer[index] = ((uint16_t)color << 8) | c;
+        cursor_col++;
+        if (cursor_col >= VGA_WIDTH) {
+            cursor_col = 0;
+            cursor_row++;
+        }
+    }
+
+    // Scroll like in kprint_char
+    if (cursor_row >= VGA_HEIGHT) {
+        for (int row = 1; row < VGA_HEIGHT; row++) {
+            for (int col = 0; col < VGA_WIDTH; col++) {
+                vga_buffer[(row - 1) * VGA_WIDTH + col] = vga_buffer[row * VGA_WIDTH + col];
+            }
+        }
+        for (int col = 0; col < VGA_WIDTH; col++) {
+            vga_buffer[(VGA_HEIGHT - 1) * VGA_WIDTH + col] = ((uint16_t)DEFAULT_COLOR << 8) | ' ';
+        }
+        cursor_row = VGA_HEIGHT - 1;
+    }
+}
+
+
+void kprint_color(const char *str, uint8_t color) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        kprint_char_color(str[i], color);
     }
 }
 

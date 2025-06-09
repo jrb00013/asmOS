@@ -21,4 +21,6 @@ static void draw_box(int x, int y, int w, int h, uint8_t color);
 static void print_at(int x, int y, const char* str);
 static void draw_progress_bar(int x, int y, int width, int percent);
 void show_boot_splash(void);
+void kprint_char_color(char c, uint8_t color);
+void kprint_color(const char* str, uint8_t color);
 #endif // KERNEL_H

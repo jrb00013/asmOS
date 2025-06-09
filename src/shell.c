@@ -36,6 +36,7 @@ void start_shell(void) {
     
     while (1) {
         kprint("> ");
+        print_prompt();
         sys_read_line(input, sizeof(input));
         
         // Parse command and arguments
@@ -81,4 +82,9 @@ static void cmd_meminfo(char *args) {
 static void cmd_exit(char *args) {
     kprint("Shutting down...\n");
     sys_exit(0);
+}
+
+void print_prompt(void) {
+    kprint_color("PS2OS ", 0x2A);  // light green
+    kprint_color("[user@asmos]:~$ ", 0x1F);  // light blue on white
 }

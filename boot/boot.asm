@@ -116,8 +116,8 @@ done:
     ret
 
 ; === Data ===
-boot_msg db "PS2 x86 Bootloader v1.0", 0x0D, 0x0A, 0
-kernel_loaded_msg db "Kernel loaded, transferring control...", 0x0D, 0x0A, 0
+boot_msg db "PS2 x86 Bootloader v3.9", 0x0D, 0x0A, 0
+kernel_loaded_msg db "Kernel loaded, transferring control. Waiting on bootable device...", 0x0D, 0x0A, 0
 load_error_msg db "Error loading kernel!", 0x0D, 0x0A, 0
 disk_error_msg db "Disk read error!", 0x0D, 0x0A, 0
 not_elf_msg db "Invalid ELF file!", 0x0D, 0x0A, 0
