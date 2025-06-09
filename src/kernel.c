@@ -12,12 +12,11 @@ extern void enable_interrupts_asm(void);
 extern void disable_interrupts_asm(void);
 extern void load_kernel_from_disk(void);
 
+
 // VGA text buffer starts at 0xB8000
 volatile uint16_t* vga_buffer = (uint16_t*)VGA_ADDRESS;
 int cursor_row = 0;
 int cursor_col = 0;
-
-
 
 
 // Kernel entry point with proper initialization sequence
@@ -25,26 +24,94 @@ void kernel_main(void) {
     // Initialize critical components first
     disable_interrupts_asm();
     init_memory_manager();
-    
-    // Load additional kernel components from disk
     load_kernel_from_disk();
     
     // Initialize system components
     init_scheduler();
     init_fat12();  // Initialize filesystem
     init_shell();
+
+    show_boot_splash(); 
     
-    // Enable interrupts and start system
+    // enable interrupts and start system
     enable_interrupts_asm();
     kprint("PS2 x86 OS Kernel v1.0\n");
     
-    // Start the shell
     start_shell();
-    
-    // Should never reach here
+    // Catch
     halt_system();
 }
 
+static void draw_box(int x, int y, int w, int h, uint8_t color) {
+    for (int i = x + 1; i < x + w - 1; i++) {
+        vga_buffer[y * VGA_WIDTH + i] = ((uint16_t)color << 8) | 0x2500; // ─
+        vga_buffer[(y + h - 1) * VGA_WIDTH + i] = ((uint16_t)color << 8) | 0x2500; // ─
+    }
+    for (int i = y + 1; i < y + h - 1; i++) {
+        vga_buffer[i * VGA_WIDTH + x] = ((uint16_t)color << 8) | 0x2502; // │
+        vga_buffer[i * VGA_WIDTH + x + w - 1] = ((uint16_t)color << 8) | 0x2502; // │
+    }
+    vga_buffer[y * VGA_WIDTH + x] = ((uint16_t)color << 8) | 0x250C; // ┌
+    vga_buffer[y * VGA_WIDTH + x + w - 1] = ((uint16_t)color << 8) | 0x2510; // ┐
+    vga_buffer[(y + h - 1) * VGA_WIDTH + x] = ((uint16_t)color << 8) | 0x2514; // └
+    vga_buffer[(y + h - 1) * VGA_WIDTH + x + w - 1] = ((uint16_t)color << 8) | 0x2518; // ┘
+}
+
+static void print_at(int x, int y, const char* str) {
+    int idx = y * VGA_WIDTH + x;
+    while (*str) {
+        vga_buffer[idx++] = ((uint16_t)DEFAULT_COLOR << 8) | *str++;
+    }
+}
+
+static void draw_progress_bar(int x, int y, int width, int percent) {
+    int filled = (width * percent) / 100;
+    for (int i = 0; i < width; i++) {
+        if (i < filled) {
+            vga_buffer[y * VGA_WIDTH + x + i] = ((uint16_t)0x2A << 8) | '#'; // Bright color (color 0x2A)
+        } else {
+            vga_buffer[y * VGA_WIDTH + x + i] = ((uint16_t)DEFAULT_COLOR << 8) | '-';
+        }
+    }
+}
+
+void show_boot_splash(void) {
+    // Clear screen
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        vga_buffer[i] = ((uint16_t)DEFAULT_COLOR << 8) | ' ';
+    }
+
+    draw_box(10, 5, 60, 14, DEFAULT_COLOR);
+    print_at(15, 6, "PS2 x86 OS Kernel v1.0");
+    print_at(15, 8, "Booting system...");
+
+    print_at(15, 9, "Loading memory manager...");
+    draw_progress_bar(15, 10, 40, 0);
+    for (int p = 0; p <= 100; p += 20) {
+        draw_progress_bar(15, 10, 40, p);
+        for (volatile int i=0; i<1000000; i++);  // crude delay
+    }
+    print_at(15, 11, "Memory manager initialized");
+
+    print_at(15, 12, "Loading filesystem...");
+    draw_progress_bar(15, 13, 40, 0);
+    for (int p = 0; p <= 100; p += 25) {
+        draw_progress_bar(15, 13, 40, p);
+        for (volatile int i=0; i<1000000; i++);
+    }
+    print_at(15, 14, "Filesystem initialized");
+
+    print_at(15, 15, "Loading scheduler...");
+    draw_progress_bar(15, 16, 40, 0);
+    for (int p = 0; p <= 100; p += 33) {
+        draw_progress_bar(15, 16, 40, p);
+        for (volatile int i=0; i<1000000; i++);
+    }
+    print_at(15, 17, "Scheduler initialized");
+
+    print_at(15, 18, "Starting shell...");
+    for (volatile int i=0; i<1000000; i++);
+}
 
 void kprint_char(char c) {
     if (c == '\n') {
