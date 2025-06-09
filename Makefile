@@ -73,7 +73,7 @@ $(OS_IMAGE): $(BOOTLOADER_BIN) $(KERNEL_BIN)
 
 # Run in QEMU
 run: $(OS_IMAGE)
-	qemu-system-i386 -drive format=raw,file=$<
+	qemu-system-i386 -monitor stdio -drive format=raw,file=$<
 
 clean:
 	rm -rf $(BUILD_DIR) $(DISK_DIR)
