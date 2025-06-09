@@ -45,7 +45,7 @@ sys_read_line:
 
 sys_exit:
     ; Print "Exiting..." and halt
-    mov si, exit_msg
+    mov esi, exit_msg
 
 .print_loop:
     mov al, [esi]
