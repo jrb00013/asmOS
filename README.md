@@ -4,7 +4,7 @@
 
  Burn ISO Image File to CD Disk:  growisofs -dvd-compat -Z /dev/sr0=disk/os.img  
 
-On PS2: Insert the CD, Boot with modchip enabled
+On PS2 (or equivalent hardware specs): Insert the CD with burned ISO image, Boot with modchip
 
 ## Requirements
 - PS2
