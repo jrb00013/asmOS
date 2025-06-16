@@ -3,7 +3,7 @@
 
 OS with basic shell and memory management in x86 Assembly.
 
-growisofs -dvd-compat -Z /dev/sr0=disk/os.img   (Burn ISO Image File to CD Disk)
+ Burn ISO Image File to CD Disk:  growisofs -dvd-compat -Z /dev/sr0=disk/os.img  
 
 On PS2: Insert the CD, Boot with modchip enabled
 
