@@ -1,7 +1,6 @@
 
-# ARM Assembly OS (Shell + Memory Manager) 
+# x86 Assembly Real-Mode OS 
 
-OS with basic shell and memory management in x86 Assembly.
 
  Burn ISO Image File to CD Disk:  growisofs -dvd-compat -Z /dev/sr0=disk/os.img  
 
