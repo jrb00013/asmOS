@@ -85,7 +85,7 @@ void *malloc(size_t size) {
     return (char *)block + sizeof(mem_block_t);
 }
 
-
+// updated free
 void free(void *ptr) {
     if (!ptr) return;
     
