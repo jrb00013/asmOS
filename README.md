@@ -7,8 +7,6 @@ growisofs -dvd-compat -Z /dev/sr0=disk/os.img   (Burn ISO Image File to CD Disk)
 
 On PS2: Insert the CD, Boot with modchip enabled
 
-The OS should start automatically
-
 ## Requirements
 - PS2
 - DMS3 Modchip  (or any ModChip that works on the PS2)
