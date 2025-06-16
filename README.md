@@ -8,7 +8,7 @@ On PS2 (or equivalent hardware specs): Insert the CD with burned ISO image, Boot
 
 ## Requirements
 - PS2
-- DMS3 Modchip  (or any ModChip that works on the PS2)
+- DMS3 Modchip  (or any Modchip that works on the PS2)
 - CD
 - Linux Terminal
 - NASM for Assembly compilation
