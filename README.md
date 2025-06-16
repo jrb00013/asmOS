@@ -3,7 +3,7 @@
 
 Build an OS with basic shell and memory management in C & Assembly.
 
-## 🛠️ How to Run:
+## Compile and Run
 
 In Project Directory:
 1. make                 (Compile)
@@ -13,7 +13,7 @@ In Project Directory:
 
 The OS should start automatically
 
-## 📦 Requirements:
+## Requirements
 - PS2
 - DMS3 Modchip  (or any ModChip that works on the PS2)
 - CD
