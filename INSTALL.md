@@ -1,6 +1,6 @@
 # PS2 x86 OS Installation Guide v2.0
 
-## 🎮 Prerequisites
+## Prerequisites
 
 ### Hardware Requirements
 - **PlayStation 2 Console** (any model: SCPH-10000, SCPH-15000, SCPH-18000, SCPH-30000, SCPH-35000, SCPH-37000, SCPH-39000, SCPH-50000, SCPH-70000, SCPH-75000, SCPH-77000, SCPH-79000, SCPH-90000)
@@ -168,7 +168,7 @@ PS2 x86 OS Kernel v2.0 - Ready!
 PS2OS [user@ps2]:~$ 
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Build Issues
 
@@ -251,7 +251,7 @@ sudo wodim -v -eject ps2os.iso
 3. **Restart PS2**
 4. **Check for memory card corruption**
 
-## 🔍 Testing and Verification
+## Testing and Verification
 
 ### QEMU Testing
 ```bash
@@ -289,7 +289,7 @@ ls
 # Run for extended period
 ```
 
-## 📚 Advanced Configuration
+## Advanced Configuration
 
 ### Customizing Boot Messages
 Edit `boot/boot.asm`:
@@ -311,7 +311,7 @@ Edit `Makefile`:
 CFLAGS += -DPS2_MODEL_SCPH_50000
 ```
 
-## 🆘 Support
+## Support
 
 ### Getting Help
 1. **Check README.md** for basic information
@@ -333,10 +333,10 @@ A: No, this OS is designed for CD booting. USB booting is not supported.
 **Q: Is this legal?**
 A: Yes, this is a legitimate operating system. Modchip usage may vary by region.
 
-## 📄 License and Legal
+## License and Legal
 
 This software is provided as-is for educational and personal use. Users are responsible for compliance with local laws regarding modchip usage and console modification.
 
 ---
 
-**Enjoy your enhanced PS2 x86 OS experience!** 🎮
+**Enjoy your enhanced PS2 x86 OS experience!**

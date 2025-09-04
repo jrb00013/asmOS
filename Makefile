@@ -5,9 +5,12 @@ AS = nasm
 LD = ld
 OBJCOPY = objcopy
 
-# Tools
+# Tools with fallbacks
+QEMU = $(shell which qemu-system-i386 2>/dev/null || which qemu-system-x86_64 2>/dev/null || echo qemu-system-i386)
+MKISOFS = $(shell which mkisofs 2>/dev/null || which genisoimage 2>/dev/null || echo mkisofs)
+GROWISOFS = $(shell which growisofs 2>/dev/null || echo growisofs)
+MKFS = $(shell which mkfs.fat 2>/dev/null || which mkdosfs 2>/dev/null || echo mkfs.fat)
 DD = dd
-MKFS = mkfs.fat
 MCOPY = mcopy
 
 # Enhanced Compilation Flags for PS2 optimization
@@ -85,11 +88,11 @@ $(OS_IMAGE): $(BOOTLOADER_BIN) $(KERNEL_BIN)
 
 # QEMU run (for testing)
 run: $(OS_IMAGE)
-	qemu-system-i386 -monitor stdio -drive format=raw,file=$< -m 32
+	$(QEMU) -monitor stdio -drive format=raw,file=$< -m 32
 
 # QEMU + GDB debug server
 debug: $(KERNEL_ELF)
-	qemu-system-i386 -s -S -monitor stdio -drive format=raw,file=$(OS_IMAGE) -m 32
+	$(QEMU) -s -S -monitor stdio -drive format=raw,file=$(OS_IMAGE) -m 32
 
 # GDB connect
 gdb: $(KERNEL_ELF)
@@ -98,14 +101,14 @@ gdb: $(KERNEL_ELF)
 # PS2 test build (with PS2-specific optimizations)
 ps2-test: ps2-build
 	@echo "Testing PS2 build in QEMU..."
-	qemu-system-i386 -monitor stdio -drive format=raw,file=$(OS_IMAGE) -m 32 -cpu pentium3
+	$(QEMU) -monitor stdio -drive format=raw,file=$(OS_IMAGE) -m 32 -cpu pentium3
 
 # Create ISO for CD burning
 iso: $(OS_IMAGE)
 	@echo "Creating ISO image for CD burning..."
-	mkisofs -o ps2os.iso -b os.img -no-emul-boot -boot-load-size 4 -boot-info-table $(DISK_DIR)
+	$(MKISOFS) -o ps2os.iso -b os.img -no-emul-boot -boot-load-size 4 -boot-info-table $(DISK_DIR)
 	@echo "ISO created: ps2os.iso"
-	@echo "Ready for burning with: growisofs -dvd-compat -Z /dev/sr0=ps2os.iso"
+	@echo "Ready for burning with: $(GROWISOFS) -dvd-compat -Z /dev/sr0=ps2os.iso"
 
 # Clean build artifacts
 clean:
