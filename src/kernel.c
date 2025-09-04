@@ -73,6 +73,20 @@ void kernel_main(void) {
     halt_system();
 }
 
+// System halt function
+void halt_system(void) {
+    kprint("System halted. Press any key to reboot...\n");
+    // Wait for key press
+    asm volatile("int $0x16");
+    // Reboot
+    asm volatile("int $0x19");
+}
+
+// Get system memory function
+uint32_t get_system_memory(void) {
+    return ps2_info.total_memory;
+}
+
 static void draw_box(int x, int y, int w, int h, uint8_t color) {
     for (int i = x + 1; i < x + w - 1; i++) {
         vga_buffer[y * VGA_WIDTH + i] = ((uint16_t)color << 8) | 0x2500; // ─
