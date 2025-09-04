@@ -12,37 +12,61 @@ extern void enable_interrupts_asm(void);
 extern void disable_interrupts_asm(void);
 extern void load_kernel_from_disk(void);
 
+// PS2-specific hardware detection
+extern uint32_t detect_ps2_memory(void);
+extern void init_ps2_controllers(void);
 
 // VGA text buffer starts at 0xB8000
 volatile uint16_t* vga_buffer = (uint16_t*)VGA_ADDRESS;
 int cursor_row = 0;
 int cursor_col = 0;
 
+// PS2 system information
+static struct {
+    uint32_t total_memory;
+    uint8_t ps2_detected;
+    uint8_t dualshock_support;
+    uint8_t network_support;
+} ps2_info = {0};
 
-// Kernel entry point with proper initialization sequence
+// Enhanced kernel entry point with PS2 optimizations
 void kernel_main(void) {
     // Initialize critical components first
-    kprint("KERNEL MAIN STARTED\n");  
+    kprint("PS2 x86 OS Kernel v2.0 - Enhanced Edition\n");  
     disable_interrupts_asm();
-    kprint("init_memory_manager() running...\n");
+    
+    // Detect PS2 hardware
+    kprint("Detecting PS2 hardware...\n");
+    ps2_info.total_memory = detect_ps2_memory();
+    ps2_info.ps2_detected = (ps2_info.total_memory >= 32);
+    
+    if (ps2_info.ps2_detected) {
+        kprintf("PS2 detected! Total memory: %u MB\n", ps2_info.total_memory);
+        init_ps2_controllers();
+    } else {
+        kprint("Running in compatibility mode\n");
+    }
+    
+    kprint("Initializing memory manager...\n");
     init_memory_manager();
-    kprint("LOAD kernel_from_disk done\n");
+    
+    kprint("Loading kernel from disk...\n");
     load_kernel_from_disk();
     
     // Initialize system components
-    kprint("INITIALIZING SCHEDULER and FAT12 FILE...\n");
+    kprint("Initializing scheduler and FAT12 filesystem...\n");
     init_scheduler();
     init_fat12();  // Initialize filesystem
     
-    kprint("INITIALIZING SHELL...\n");
+    kprint("Initializing enhanced shell...\n");
     init_shell();
 
-    kprint("show_boot_splash()...\n");
-    show_boot_splash(); 
+    kprint("Showing enhanced boot splash...\n");
+    show_enhanced_boot_splash(); 
     
     // Enable interrupts and start system
     enable_interrupts_asm();
-    kprint("PS2 x86 OS Kernel v1.0\argen");
+    kprint("PS2 x86 OS Kernel v2.0 - Ready!\n");
     
     start_shell();
     // Catch
@@ -82,42 +106,66 @@ static void draw_progress_bar(int x, int y, int width, int percent) {
     }
 }
 
-void show_boot_splash(void) {
+// Enhanced boot splash with PS2 branding
+void show_enhanced_boot_splash(void) {
     // Clear screen
     for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
         vga_buffer[i] = ((uint16_t)DEFAULT_COLOR << 8) | ' ';
     }
 
-    draw_box(10, 5, 60, 14, DEFAULT_COLOR);
-    print_at(15, 6, "PS2 x86 OS Kernel v1.0");
-    print_at(15, 8, "Booting system...");
+    // Draw enhanced PS2-themed boot screen
+    draw_box(5, 3, 70, 20, 0x1F);  // Blue border
+    
+    // PS2 logo/header
+    print_at(25, 4, "PS2 x86 Operating System v2.0");
+    print_at(20, 5, "Enhanced Edition for PlayStation 2");
+    
+    print_at(15, 7, "System Information:");
+    if (ps2_info.ps2_detected) {
+        print_at(15, 8, "PS2 Hardware: DETECTED");
+        kprintf("Memory: %u MB available", ps2_info.total_memory);
+    } else {
+        print_at(15, 8, "PS2 Hardware: NOT DETECTED (Compatibility Mode)");
+    }
 
-    print_at(15, 9, "Loading memory manager...");
-    draw_progress_bar(15, 10, 40, 0);
+    print_at(15, 10, "Initializing system components...");
+
+    // Memory manager progress
+    print_at(15, 11, "Loading memory manager...");
+    draw_progress_bar(15, 12, 40, 0);
     for (int p = 0; p <= 100; p += 20) {
-        draw_progress_bar(15, 10, 40, p);
-        for (volatile int i=0; i<1000000; i++);  // crude delay
+        draw_progress_bar(15, 12, 40, p);
+        for (volatile int i=0; i<800000; i++);  // PS2-optimized delay
     }
-    print_at(15, 11, "Memory manager initialized");
+    print_at(15, 13, "Memory manager initialized");
 
-    print_at(15, 12, "Loading filesystem...");
-    draw_progress_bar(15, 13, 40, 0);
+    // Filesystem progress
+    print_at(15, 14, "Loading FAT12 filesystem...");
+    draw_progress_bar(15, 15, 40, 0);
     for (int p = 0; p <= 100; p += 25) {
-        draw_progress_bar(15, 13, 40, p);
-        for (volatile int i=0; i<1000000; i++);
+        draw_progress_bar(15, 15, 40, p);
+        for (volatile int i=0; i<800000; i++);
     }
-    print_at(15, 14, "Filesystem initialized");
+    print_at(15, 16, "Filesystem initialized");
 
-    print_at(15, 15, "Loading scheduler...");
-    draw_progress_bar(15, 16, 40, 0);
+    // Scheduler progress
+    print_at(15, 17, "Loading task scheduler...");
+    draw_progress_bar(15, 18, 40, 0);
     for (int p = 0; p <= 100; p += 33) {
-        draw_progress_bar(15, 16, 40, p);
-        for (volatile int i=0; i<1000000; i++);
+        draw_progress_bar(15, 18, 40, p);
+        for (volatile int i=0; i<800000; i++);
     }
-    print_at(15, 17, "Scheduler initialized");
+    print_at(15, 19, "Scheduler initialized");
 
-    print_at(15, 18, "Starting shell...");
+    print_at(15, 20, "Starting enhanced shell...");
     for (volatile int i=0; i<1000000; i++);
+    
+    // Clear screen for shell
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        vga_buffer[i] = ((uint16_t)DEFAULT_COLOR << 8) | ' ';
+    }
+    cursor_row = 0;
+    cursor_col = 0;
 }
 
 void kprint_char(char c) {

@@ -1,3 +1,4 @@
+# Enhanced PS2 x86 OS Makefile
 # Compiler and Assembler
 CC = i686-elf-gcc
 AS = nasm
@@ -9,9 +10,11 @@ DD = dd
 MKFS = mkfs.fat
 MCOPY = mcopy
 
-# Compilation Flags !!!!! IN ORDER TO ENABLE OPTIMIZATION FOR DEPLOYMENT
-# ..... YOU NEED TO CHANGE -O0 to -O2.      -O0 = debugging    -O2 = optimized deploy
-CFLAGS = -m32 -Wall -O0 -g -ffreestanding -nostdlib -fno-builtin -Iinclude
+# Enhanced Compilation Flags for PS2 optimization
+# -O2 for production optimization
+# -march=i686 for PS2-compatible x86 instructions
+# -mtune=pentium3 for PS2-era CPU optimization
+CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude -march=i686 -mtune=pentium3
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T llinker/linker.ld --gc-sections
 
@@ -35,9 +38,15 @@ KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 OS_IMAGE = $(DISK_DIR)/os.img
 
-.PHONY: all clean run debug gdb
+.PHONY: all clean run debug gdb ps2-build ps2-test
 
 all: $(OS_IMAGE)
+
+# PS2-specific build target
+ps2-build: CFLAGS += -DPS2_HARDWARE=1
+ps2-build: $(OS_IMAGE)
+	@echo "PS2-optimized build complete!"
+	@echo "Ready for CD burning with: growisofs -dvd-compat -Z /dev/sr0=disk/os.img"
 
 # Bootloader binary (raw)
 $(BOOTLOADER_BIN): $(BOOT_DIR)/boot.asm
@@ -62,25 +71,54 @@ $(KERNEL_ELF): $(OBJS)
 $(KERNEL_BIN): $(KERNEL_ELF)
 	$(OBJCOPY) -O binary --set-start 0x1000 $< $@
 
-# Disk image setup
+# Enhanced disk image setup for PS2
 $(OS_IMAGE): $(BOOTLOADER_BIN) $(KERNEL_BIN)
 	@mkdir -p $(DISK_DIR)
+	@echo "Creating PS2-compatible disk image..."
 	$(DD) if=/dev/zero of=$@ bs=512 count=2880
 	$(MKFS) -F12 $@
 	$(DD) if=$(BOOTLOADER_BIN) of=$@ conv=notrunc
 	$(MCOPY) -i $@ $(KERNEL_BIN) ::KERNEL.BIN
+	@echo "Disk image created: $@"
+	@echo "Size: $(shell stat -c%s $@) bytes"
 
-# QEMU run
+# QEMU run (for testing)
 run: $(OS_IMAGE)
-	qemu-system-i386 -monitor stdio -drive format=raw,file=$<
+	qemu-system-i386 -monitor stdio -drive format=raw,file=$< -m 32
 
 # QEMU + GDB debug server
 debug: $(KERNEL_ELF)
-	qemu-system-i386 -s -S -monitor stdio -drive format=raw,file=$(OS_IMAGE)
+	qemu-system-i386 -s -S -monitor stdio -drive format=raw,file=$(OS_IMAGE) -m 32
 
 # GDB connect
 gdb: $(KERNEL_ELF)
 	i686-elf-gdb $< -ex "target remote localhost:1234"
 
+# PS2 test build (with PS2-specific optimizations)
+ps2-test: ps2-build
+	@echo "Testing PS2 build in QEMU..."
+	qemu-system-i386 -monitor stdio -drive format=raw,file=$(OS_IMAGE) -m 32 -cpu pentium3
+
+# Create ISO for CD burning
+iso: $(OS_IMAGE)
+	@echo "Creating ISO image for CD burning..."
+	mkisofs -o ps2os.iso -b os.img -no-emul-boot -boot-load-size 4 -boot-info-table $(DISK_DIR)
+	@echo "ISO created: ps2os.iso"
+	@echo "Ready for burning with: growisofs -dvd-compat -Z /dev/sr0=ps2os.iso"
+
+# Clean build artifacts
 clean:
-	rm -rf $(BUILD_DIR) $(DISK_DIR)
+	rm -rf $(BUILD_DIR) $(DISK_DIR) ps2os.iso
+
+# Show build information
+info:
+	@echo "PS2 x86 OS Build Information:"
+	@echo "============================="
+	@echo "Compiler: $(CC)"
+	@echo "Assembler: $(AS)"
+	@echo "Linker: $(LD)"
+	@echo "CFLAGS: $(CFLAGS)"
+	@echo "Target: PS2 x86 Assembly Real-Mode OS"
+	@echo "Boot Method: Modchip (DMS3)"
+	@echo "Media: CD/DVD"
+	@echo "Requirements: PS2, DMS3 Modchip, Linux Terminal, NASM, GCC"

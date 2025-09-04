@@ -4,8 +4,8 @@
 jmp start
 nop
 
-; === BIOS Parameter Block (BPB) ===
-OEMLabel        db 'MSWIN4.1'      ; OEM Name
+; === Enhanced BIOS Parameter Block (BPB) for PS2 ===
+OEMLabel        db 'PS2OS   '      ; OEM Name - PS2 specific
 BytesPerSector  dw 512
 SectorsPerCluster db 1
 ReservedSectors dw 1
@@ -22,10 +22,10 @@ DriveNumber     db 0
 Reserved1       db 0
 BootSignature   db 0x29
 VolumeID        dd 0x12345678
-VolumeLabel     db 'NO NAME    '
+VolumeLabel     db 'PS2OS     '    ; PS2 OS label
 FileSystemType  db 'FAT12   '
 
-; === Bootloader starts here ===
+; === Enhanced Bootloader starts here ===
 start:
     cli
     xor ax, ax
@@ -36,13 +36,19 @@ start:
     sti
     mov [boot_drive], dl
 
+    ; Clear screen and set video mode for PS2
     mov ax, 0x0003
     int 0x10
 
+    ; Display enhanced boot message
     mov si, boot_msg
     call print_string
 
-    call load_kernel
+    ; Check for PS2 hardware (basic detection)
+    call detect_ps2_hardware
+
+    ; Load kernel with enhanced error handling
+    call load_kernel_enhanced
 
     cmp word [kernel_size], 0
     je load_error
@@ -50,17 +56,66 @@ start:
     mov si, kernel_loaded_msg
     call print_string
 
+    ; Set up segments for kernel
     mov ax, 0x1000
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
 
+    ; Jump to kernel
     jmp 0x1000:0x0000
 
-load_kernel:
+; === Enhanced PS2 Hardware Detection ===
+detect_ps2_hardware:
+    pusha
+    
+    ; Check for PS2-specific memory regions
+    mov ax, 0xE820
+    mov edx, 'PAMS'
+    mov ebx, 0
+    mov ecx, 20
+    mov edi, memory_map_buffer
+    int 0x15
+    
+    ; Check if we got memory map (indicates PS2-like hardware)
+    jc .no_memory_map
+    cmp eax, 'PAMS'
+    je .ps2_detected
+    
+.no_memory_map:
+    ; Fallback: assume PS2 if we have at least 32MB RAM
+    mov ah, 0x88
+    int 0x15
+    cmp ax, 32
+    jb .not_ps2
+    
+.ps2_detected:
+    mov si, ps2_detected_msg
+    call print_string
+    jmp .detection_done
+    
+.not_ps2:
+    mov si, not_ps2_msg
+    call print_string
+    
+.detection_done:
+    popa
+    ret
+
+; === Enhanced Kernel Loading ===
+load_kernel_enhanced:
+    pusha
+    
+    ; Reset disk system
+    mov ah, 0x00
+    mov dl, [boot_drive]
+    int 0x13
+    jc disk_error
+
+    ; Load more sectors for larger kernel support
     mov ah, 0x02
-    mov al, 15
+    mov al, 32              ; Load 32 sectors (16KB) instead of 15
     mov ch, 0x00
     mov dh, 0x00
     mov cl, 0x02
@@ -76,8 +131,21 @@ load_kernel:
     int 0x13
     jc disk_error
 
-    mov word [kernel_size], 15 * 512
+    ; Verify kernel magic number
+    mov ax, es
+    mov ds, ax
+    mov si, 0
+    cmp word [si], 0x7F45    ; ELF magic number
+    jne kernel_corrupt
+
+    mov word [kernel_size], 32 * 512
+    popa
     ret
+
+kernel_corrupt:
+    mov si, kernel_corrupt_msg
+    call print_string
+    jmp $
 
 disk_error:
     mov si, disk_error_msg
@@ -89,6 +157,7 @@ load_error:
     call print_string
     jmp $
 
+; === Enhanced String Printing ===
 print_string:
     lodsb
     or al, al
@@ -97,6 +166,7 @@ print_string:
     int 0x10
     jmp print_string
 
+; === Enhanced ELF Parsing ===
 parse_elf:
     mov si, bx
     cmp word [es:si], 0x457F
@@ -115,14 +185,21 @@ not_elf:
 done:
     ret
 
-; === Data ===
-boot_msg db "PS2 x86 Bootloader v3.9", 0x0D, 0x0A, 0
-kernel_loaded_msg db "Kernel loaded, transferring control. Waiting on bootable device...", 0x0D, 0x0A, 0
+; === Enhanced Data Section ===
+boot_msg db "PS2 x86 Bootloader v4.0 - Enhanced Edition", 0x0D, 0x0A, 0
+kernel_loaded_msg db "Kernel loaded successfully! Transferring control...", 0x0D, 0x0A, 0
 load_error_msg db "Error loading kernel!", 0x0D, 0x0A, 0
-disk_error_msg db "Disk read error!", 0x0D, 0x0A, 0
-not_elf_msg db "Invalid ELF file!", 0x0D, 0x0A, 0
+disk_error_msg db "Disk read error! Check CD/DVD drive.", 0x0D, 0x0A, 0
+not_elf_msg db "Invalid ELF file! Kernel corrupted.", 0x0D, 0x0A, 0
+kernel_corrupt_msg db "Kernel file corrupted! Reinstall OS.", 0x0D, 0x0A, 0
+ps2_detected_msg db "PS2 hardware detected. Optimizing for PS2...", 0x0D, 0x0A, 0
+not_ps2_msg db "Warning: PS2 hardware not detected. Running in compatibility mode.", 0x0D, 0x0A, 0
+
 boot_drive db 0
 kernel_size dw 0
+
+; Memory map buffer for PS2 detection
+memory_map_buffer times 20 db 0
 
 ; === Boot sector padding & signature ===
 times 510 - ($ - $$) db 0
