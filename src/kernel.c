@@ -281,12 +281,6 @@ void putchar(char c) {
     }
 }
 
-void print_string(const char* str) {
-    while (*str) {
-        putchar(*str++);
-    }
-}
-
 void print_decimal(int value) {
     char buffer[16];
     int i = 0;
