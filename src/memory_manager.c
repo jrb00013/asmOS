@@ -4,15 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define ALIGNMENT 8
-#define MEMORY_POOL_SIZE 1024*1024 // 1MB default pool size
-
-typedef struct mem_block {
-    size_t size;             
-    int free;              
-    struct mem_block *next;  
-} mem_block_t;
-
 static char memory_pool[MEMORY_POOL_SIZE];
 static mem_block_t *free_list = NULL;
 

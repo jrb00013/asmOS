@@ -4,16 +4,6 @@
 #include <stdint.h>
 
 // Game system for PS2
-typedef struct {
-    char name[32];
-    char description[128];
-    uint32_t size;
-    uint32_t type;
-    void (*init_func)(void);
-    void (*run_func)(void);
-    void (*cleanup_func)(void);
-} game_info_t;
-
 // Game types
 #define GAME_TYPE_ACTION    1
 #define GAME_TYPE_PUZZLE   2

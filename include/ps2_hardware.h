@@ -2,6 +2,7 @@
 #define PS2_HARDWARE_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 // PS2 Hardware Constants
 #define PS2_MEMORY_SIZE_MB        32

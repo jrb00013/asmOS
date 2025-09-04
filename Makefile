@@ -1,9 +1,9 @@
 # Enhanced PS2 x86 OS Makefile v3.0
 # Compiler and Assembler
-CC = i686-elf-gcc
+CC = gcc
 AS = nasm
-LD = /usr/local/Cellar/i686-elf-binutils/2.43.1/i686-elf/bin/ld
-OBJCOPY = i686-elf-objcopy
+LD = ld
+OBJCOPY = objcopy
 
 # Tools
 DD = dd

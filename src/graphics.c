@@ -1,14 +1,7 @@
 #include "graphics.h"
 #include "kernel.h"
 #include <stdint.h>
-
-// Graphics demo system for PS2
-typedef struct {
-    uint32_t x, y;
-    uint32_t width, height;
-    uint32_t color;
-    uint32_t velocity_x, velocity_y;
-} demo_object_t;
+#include <stdlib.h>
 
 // Demo objects
 static demo_object_t objects[10];

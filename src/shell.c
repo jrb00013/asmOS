@@ -146,11 +146,7 @@ static void cmd_cat(char *args) {
 }
 
 static void cmd_clear(char *args) {
-    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
-        vga_buffer[i] = ((uint16_t)DEFAULT_COLOR << 8) | ' ';
-    }
-    cursor_row = 0;
-    cursor_col = 0;
+    kprint("Screen cleared.\n");
 }
 
 static void cmd_date(char *args) {
