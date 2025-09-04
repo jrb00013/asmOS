@@ -82,6 +82,7 @@ increment_test() {
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
+
 # Test result tracking
 test_passed() {
     PASSED_TESTS=$((PASSED_TESTS + 1))
