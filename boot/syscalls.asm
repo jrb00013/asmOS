@@ -29,12 +29,11 @@ sys_network_init:
     pusha
     
     ; Initialize PS2 network adapter
-    ; This is a simplified version - real PS2 networking is complex
     
     ; Check for network adapter
     mov eax, 0x1F801450  ; PS2 network register base
     mov ebx, [eax]
-    test ebx, 0x80000000  ; Check if adapter present
+    test ebx, 0x80000000 
     jz .no_network
     
     ; Initialize network controller
@@ -43,7 +42,7 @@ sys_network_init:
     
     ; Set up network parameters
     mov eax, 0x1F801454
-    mov dword [eax], 0x0A000001  ; IP: 10.0.0.1
+    mov dword [eax], 0x0A000001  ; IP: 10.0.0.1 
     
     mov eax, 0x1F801458
     mov dword [eax], 0xFFFFFF00  ; Netmask: 255.255.255.0
