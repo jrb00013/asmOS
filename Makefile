@@ -1,4 +1,4 @@
-# Enhanced PS2 x86 OS Makefile
+# Enhanced PS2 x86 OS Makefile v3.0
 # Compiler and Assembler
 CC = i686-elf-gcc
 AS = nasm
@@ -14,7 +14,8 @@ MCOPY = mcopy
 # -O2 for production optimization
 # -march=i686 for PS2-compatible x86 instructions
 # -mtune=pentium3 for PS2-era CPU optimization
-CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude -march=i686 -mtune=pentium3
+# -fno-stack-protector for better compatibility
+CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude -march=i686 -mtune=pentium3 -fno-stack-protector
 ASFLAGS = -f elf32
 LDFLAGS = -m elf_i386 -T llinker/linker.ld --gc-sections
 
