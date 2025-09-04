@@ -79,7 +79,7 @@ $(OS_IMAGE): $(BOOTLOADER_BIN) $(KERNEL_BIN)
 	$(DD) if=/dev/zero of=$@ bs=512 count=2880
 	$(MKFS) -F12 $@
 	$(DD) if=$(BOOTLOADER_BIN) of=$@ conv=notrunc
-	$(MCOPY) -i $@ $(KERNEL_BIN) ::KERNEL.BIN
+	$(DD) if=$(KERNEL_BIN) of=$@ bs=512 seek=1 conv=notrunc
 	@echo "Disk image created: $@"
 	@echo "Size: $(shell stat -c%s $@) bytes"
 

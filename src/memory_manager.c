@@ -81,8 +81,7 @@ void free(void *ptr) {
     if (!ptr) return;
     
     if ((char *)ptr < memory_pool || (char *)ptr >= memory_pool + MEMORY_POOL_SIZE) {
-
-        fprintf(stderr, "Invalid pointer passed to free\n");
+        // Invalid pointer - just return silently in freestanding environment
         return;
     }
 
@@ -129,11 +128,11 @@ void *calloc(size_t nmemb, size_t size) {
 
 void print_memory_state(void) {
     mem_block_t *current = free_list;
-    printf("Memory State:\n");
+    kprint("Memory State:\n");
     while (current) {
-        printf("Block %p - size: %zu, free: %d, next: %p\n",
+        kprintf("Block %p - size: %zu, free: %d, next: %p\n",
                (void *)current, current->size, current->free, (void *)current->next);
         current = current->next;
     }
-    printf("\n");
+    kprint("\n");
 }
