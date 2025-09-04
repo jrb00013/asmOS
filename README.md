@@ -2,7 +2,7 @@
 
 A fully-featured x86 Assembly Real-Mode Operating System specifically optimized for PlayStation 2 (PS2) hardware with modchip support.
 
-## 🎮 PS2 Compatibility
+## PS2 Compatibility
 
 This OS is designed to run on PlayStation 2 consoles with the following specifications:
 - **CPU**: MIPS R5900 (Emotion Engine) - x86 emulation via modchip
@@ -11,7 +11,7 @@ This OS is designed to run on PlayStation 2 consoles with the following specific
 - **Controllers**: DualShock 2 Support
 - **Network**: Ethernet (optional)
 
-## 🔧 Requirements
+## Requirements
 
 ### Hardware Requirements
 - **PS2 Console** (any model)
@@ -28,7 +28,7 @@ This OS is designed to run on PlayStation 2 consoles with the following specific
 - **mkisofs** for ISO creation
 - **growisofs** for CD burning
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Install Dependencies
 ```bash
@@ -68,7 +68,7 @@ growisofs -dvd-compat -Z /dev/sr0=ps2os.iso
 3. The OS will boot automatically
 4. Use keyboard to interact with the shell
 
-## 🛠️ Build Options
+## Build Options
 
 ### Available Make Targets
 - `make all` - Standard build
@@ -84,7 +84,7 @@ growisofs -dvd-compat -Z /dev/sr0=ps2os.iso
 - **Graphics**: VGA text mode compatibility
 - **Storage**: FAT12 filesystem for CD compatibility
 
-## 🎯 Features
+## Features
 
 ### Enhanced Bootloader
 - PS2 hardware detection
@@ -112,7 +112,7 @@ growisofs -dvd-compat -Z /dev/sr0=ps2os.iso
 - Directory navigation (planned)
 - File reading capabilities (planned)
 
-## 🔍 System Commands
+## System Commands
 
 ### Basic Commands
 ```bash
@@ -135,7 +135,7 @@ date          # Current date/time
 reboot        # Reboot system
 ```
 
-## 🐛 Debugging
+## Debugging
 
 ### QEMU Testing
 ```bash
@@ -152,26 +152,6 @@ make debug
 2. **Build errors**: Check cross-compiler installation
 3. **Memory issues**: Verify 32MB RAM allocation
 4. **Keyboard not working**: Check USB keyboard compatibility
-
-## 📁 Project Structure
-
-```
-asmOS/
-├── boot/           # Bootloader and assembly code
-│   ├── boot.asm    # Enhanced bootloader
-│   ├── fat12.asm   # FAT12 filesystem
-│   └── syscalls.asm # System calls
-├── src/            # C source code
-│   ├── kernel.c    # Main kernel
-│   ├── shell.c     # Shell implementation
-│   ├── memory_manager.c # Memory management
-│   └── scheduler.c # Task scheduler
-├── include/        # Header files
-├── build/         # Build artifacts
-├── disk/          # Disk images
-├── llinker/       # Linker scripts
-└── Makefile       # Build configuration
-```
 
 ## 🔧 Advanced Configuration
 
@@ -193,7 +173,7 @@ Edit `Makefile` to adjust:
 - CPU architecture settings
 - Memory allocation
 
-## 📚 Technical Details
+## Technical Details
 
 ### Boot Process
 1. **BIOS Load**: PS2 BIOS loads bootloader from CD
@@ -214,27 +194,9 @@ Edit `Makefile` to adjust:
 - **Root Directory**: 224 entries maximum
 - **File Size**: Up to 32MB per file
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with `make ps2-test`
-5. Submit a pull request
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- PlayStation 2 hardware documentation
-- x86 Assembly community
-- Modchip developers
-- Open source OS development community
-
----
-
-**Ready to experience the power of x86 Assembly on your PS2!** 🎮
 
 
