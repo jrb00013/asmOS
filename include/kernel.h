@@ -8,7 +8,9 @@
 #define VGA_ADDRESS     0xB8000
 #define DEFAULT_COLOR   0x07
 
+#ifndef NULL
 #define NULL ((void*)0)
+#endif
 
 // Kernel functions
 void kprint(const char *str);

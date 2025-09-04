@@ -158,7 +158,7 @@ void draw_char(uint32_t x, uint32_t y, char c, uint32_t color) {
     uint8_t char_data[8];
     if (c < 128) {
         for (int i = 0; i < 8; i++) {
-            char_data[i] = font_data[c][i];
+            char_data[i] = font_data[(unsigned char)c][i]; 
         }
     }
     

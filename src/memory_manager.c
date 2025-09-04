@@ -1,4 +1,5 @@
 #include "memory_manager.h"
+#include "kernel.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
