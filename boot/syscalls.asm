@@ -50,7 +50,7 @@ sys_network_init:
     popa
     mov eax, 1  ; Success
     ret
-    
+
 .no_network:
     popa
     mov eax, 0  ; No network
