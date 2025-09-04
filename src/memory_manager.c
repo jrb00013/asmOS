@@ -2,7 +2,6 @@
 #include "kernel.h"
 #include <stdint.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <string.h>
 
 static char memory_pool[MEMORY_POOL_SIZE];
