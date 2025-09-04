@@ -26,7 +26,7 @@ PASSED_TESTS=0
 FAILED_TESTS=0
 
 # Log file
-LOG_FILE="test_results_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="tests/test_results_$(date +%Y%m%d_%H%M%S).log"
 
 echo -e "${BLUE}PS2 x86 OS Comprehensive Test Suite v3.0${NC}"
 echo -e "${BLUE}==========================================${NC}"
