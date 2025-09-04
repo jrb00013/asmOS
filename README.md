@@ -153,7 +153,7 @@ make debug
 3. **Memory issues**: Verify 32MB RAM allocation
 4. **Keyboard not working**: Check USB keyboard compatibility
 
-## 🔧 Advanced Configuration
+## Advanced Configuration
 
 ### Customizing for Different PS2 Models
 Edit `boot/boot.asm` to adjust:
