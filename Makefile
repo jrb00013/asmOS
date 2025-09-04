@@ -18,8 +18,10 @@ MCOPY = mcopy
 # -march=i686 for PS2-compatible x86 instructions
 # -mtune=pentium3 for PS2-era CPU optimization
 # -fno-stack-protector for better compatibility
-CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude -march=i686 -mtune=pentium3 -fno-stack-protector
-ASFLAGS = -f elf32
+# -Wno-unused-variable -Wno-unused-function to suppress warnings
+# -Wno-unused-parameter -Wno-unused-label for cleaner output
+CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude -march=i686 -mtune=pentium3 -fno-stack-protector -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter -Wno-unused-label
+ASFLAGS = -f elf32 -w+other
 LDFLAGS = -m elf_i386 -T llinker/linker.ld --gc-sections
 
 # Directories
@@ -42,9 +44,13 @@ KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 OS_IMAGE = $(DISK_DIR)/os.img
 
-.PHONY: all clean run debug gdb ps2-build ps2-test
+.PHONY: all clean run debug gdb ps2-build ps2-test quiet
 
-all: $(OS_IMAGE)
+# Quiet build target (minimal output)
+quiet: CFLAGS += -w
+quiet: ASFLAGS += -w+all
+quiet: $(OS_IMAGE)
+	@echo "Quiet build complete!"
 
 # PS2-specific build target
 ps2-build: CFLAGS += -DPS2_HARDWARE=1
@@ -52,28 +58,35 @@ ps2-build: $(OS_IMAGE)
 	@echo "PS2-optimized build complete!"
 	@echo "Ready for CD burning with: growisofs -dvd-compat -Z /dev/sr0=disk/os.img"
 
+all: $(OS_IMAGE)
+
 # Bootloader binary (raw)
 $(BOOTLOADER_BIN): $(BOOT_DIR)/boot.asm
 	@mkdir -p $(BUILD_DIR)
-	$(AS) -f bin -I$(BOOT_DIR)/ $< -o $@
+	@echo "  AS    $< (bootloader)"
+	@$(AS) -f bin -I$(BOOT_DIR)/ $< -o $@
 
 # Compile C sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo "  CC    $<"
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Assemble any additional ASM as ELF
 $(BUILD_DIR)/%.o: $(BOOT_DIR)/%.asm
 	@mkdir -p $(BUILD_DIR)
-	$(AS) $(ASFLAGS) $< -o $@
+	@echo "  AS    $<"
+	@$(AS) $(ASFLAGS) $< -o $@
 
 # Link kernel
 $(KERNEL_ELF): $(OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^
+	@echo "  LD    kernel.elf"
+	@$(LD) $(LDFLAGS) -o $@ $^
 
 # Convert ELF to flat binary
 $(KERNEL_BIN): $(KERNEL_ELF)
-	$(OBJCOPY) -O binary --set-start 0x1000 $< $@
+	@echo "  OBJCOPY kernel.bin"
+	@$(OBJCOPY) -O binary --set-start 0x1000 $< $@
 
 # Enhanced disk image setup for PS2
 $(OS_IMAGE): $(BOOTLOADER_BIN) $(KERNEL_BIN)

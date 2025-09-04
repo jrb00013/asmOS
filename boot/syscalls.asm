@@ -446,7 +446,7 @@ section .rodata
 exit_msg db "Enhanced PS2 x86 OS - Shutting down gracefully...", 0x0D, 0x0A, 0
 
 section .bss
-memory_map_buffer times 200 db 0
-network_buffer times 1024 db 0
-sound_buffer times 4096 db 0
-graphics_buffer times 65536 db 0
+memory_map_buffer: resb 200
+network_buffer: resb 1024
+sound_buffer: resb 4096
+graphics_buffer: resb 65536
