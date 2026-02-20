@@ -44,7 +44,7 @@ KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 OS_IMAGE = $(DISK_DIR)/os.img
 
-.PHONY: all clean run debug gdb ps2-build ps2-test quiet
+.PHONY: all clean run debug gdb ps2-build ps2-test test test-quick quiet
 
 # Quiet build target (minimal output)
 quiet: CFLAGS += -w
@@ -126,6 +126,20 @@ iso: $(OS_IMAGE)
 # Clean build artifacts
 clean:
 	rm -rf $(BUILD_DIR) $(DISK_DIR) ps2os.iso
+
+# Run test suite (run from asmos/ directory: make test)
+test:
+	@echo "Running full test suite..."
+	@bash test_suite.sh all false true
+
+# Run only dependency checks
+test-deps:
+	@bash test_suite.sh deps false false
+
+# Quick tests: build + optional QEMU (requires nasm)
+test-quick:
+	@echo "Running quick build test..."
+	@bash test_build.sh
 
 # Show build information
 info:

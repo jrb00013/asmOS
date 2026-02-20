@@ -1,96 +1,131 @@
 #include "graphics.h"
 #include "kernel.h"
+#include "video.h"
+#include "font_8x8.h"
+#include "keyboard.h"
 #include <stdint.h>
-#include <stdlib.h>
 
-// Demo objects
+/* Demo objects */
 static demo_object_t objects[10];
 static uint32_t object_count = 0;
 static uint32_t demo_running = 0;
 
-// Initialize graphics demo system
-void init_graphics_demo(void) {
-    kprint("Initializing PS2 Graphics Demo System...\n");
-    
-    // Initialize graphics hardware
+#ifdef PS2_HARDWARE
+static void init_graphics_hw(void) {
     asm volatile("call sys_graphics_init");
-    
-    // Create demo objects
+}
+#else
+static void set_palette_16(void) {
+    video_set_palette_entry(0,  0, 0, 0);
+    video_set_palette_entry(1,  63, 0, 0);
+    video_set_palette_entry(2,  0, 63, 0);
+    video_set_palette_entry(3,  0, 0, 63);
+    video_set_palette_entry(4,  63, 63, 0);
+    video_set_palette_entry(5,  0, 63, 63);
+    video_set_palette_entry(6,  63, 0, 63);
+    video_set_palette_entry(7,  63, 63, 63);
+    for (int i = 8; i < 16; i++) {
+        int v = (i - 8) * 8;
+        if (v > 63) v = 63;
+        video_set_palette_entry((uint8_t)i, (uint8_t)v, (uint8_t)v, (uint8_t)v);
+    }
+}
+static void init_graphics_hw(void) {
+    set_palette_16();
+}
+#endif
+
+/* Map 24-bit RGB to palette index 0..15 for mode 13h */
+static uint8_t color_to_palette(uint32_t rgb) {
+    if (rgb == 0x000000) return 0;
+    if (rgb == 0xFF0000) return 1;
+    if (rgb == 0x00FF00) return 2;
+    if (rgb == 0x0000FF) return 3;
+    if (rgb == 0xFFFF00) return 4;
+    if (rgb == 0x00FFFF) return 5;
+    if (rgb == 0xFF00FF) return 6;
+    if (rgb == 0xFFFFFF) return 7;
+    /* Other colors: use luminance and map to 8..15 */
+    uint32_t r = (rgb >> 16) & 0xFF;
+    uint32_t g = (rgb >> 8) & 0xFF;
+    uint32_t b = rgb & 0xFF;
+    uint32_t lum = (r + g + b) / 3;
+    return (uint8_t)(8 + (lum * 7) / 255);
+}
+
+#ifndef PS2_HARDWARE
+void graphics_set_palette(void) {
+    set_palette_16();
+}
+#else
+void graphics_set_palette(void) { (void)0; }
+#endif
+
+void init_graphics_demo(void) {
+    kprint("Initializing Graphics Demo System...\n");
+    init_graphics_hw();
+
     object_count = 5;
     for (int i = 0; i < object_count; i++) {
-        objects[i].x = 100 + (i * 50);
-        objects[i].y = 100 + (i * 30);
-        objects[i].width = 30 + (i * 5);
-        objects[i].height = 30 + (i * 5);
-        objects[i].color = 0xFF0000 + (i * 0x001100); // Red to blue gradient
-        objects[i].velocity_x = 2 + i;
-        objects[i].velocity_y = 1 + i;
+        objects[i].x = 40 + (i * 25);
+        objects[i].y = 40 + (i * 15);
+        objects[i].width = 12 + (i * 2);
+        objects[i].height = 12 + (i * 2);
+        objects[i].color = 0xFF0000 + (i * 0x001100);
+        objects[i].velocity_x = 1 + (i & 1);
+        objects[i].velocity_y = 1 + ((i >> 1) & 1);
     }
-    
     demo_running = 1;
     kprint("Graphics demo system initialized!\n");
 }
 
-// Run graphics demo
 void run_graphics_demo(void) {
     if (!demo_running) {
         kprint("Graphics demo not initialized!\n");
         return;
     }
-    
-    kprint("Running PS2 Graphics Demo...\n");
-    kprint("Press any key to stop demo\n");
-    
+
+    kprint("Running Graphics Demo - press any key to stop\n");
+
     uint32_t frame_count = 0;
-    
-    while (demo_running && frame_count < 1000) {
-        // Clear screen
+    while (demo_running && frame_count < 2000) {
         clear_graphics_screen();
-        
-        // Update and draw objects
-        for (int i = 0; i < object_count; i++) {
-            // Update position
+
+        for (uint32_t i = 0; i < object_count; i++) {
             objects[i].x += objects[i].velocity_x;
             objects[i].y += objects[i].velocity_y;
-            
-            // Bounce off walls
-            if (objects[i].x <= 0 || objects[i].x >= 640 - objects[i].width) {
-                objects[i].velocity_x = -objects[i].velocity_x;
+
+            if (objects[i].x <= 0 || objects[i].x >= VIDEO_WIDTH - objects[i].width) {
+                int32_t vx = (int32_t)objects[i].velocity_x;
+                objects[i].velocity_x = (uint32_t)(-vx);
             }
-            if (objects[i].y <= 0 || objects[i].y >= 480 - objects[i].height) {
-                objects[i].velocity_y = -objects[i].velocity_y;
+            if (objects[i].y <= 0 || objects[i].y >= VIDEO_HEIGHT - objects[i].height) {
+                int32_t vy = (int32_t)objects[i].velocity_y;
+                objects[i].velocity_y = (uint32_t)(-vy);
             }
-            
-            // Draw object
-            draw_rectangle(objects[i].x, objects[i].y, 
-                          objects[i].width, objects[i].height, 
-                          objects[i].color);
+
+            draw_rectangle(objects[i].x, objects[i].y,
+                           objects[i].width, objects[i].height,
+                           objects[i].color);
         }
-        
-        // Draw demo info
-        draw_text(10, 10, "PS2 Graphics Demo", 0xFFFFFF);
-        draw_text(10, 30, "Frame:", 0xFFFFFF);
-        draw_number(80, 30, frame_count, 0xFFFFFF);
-        
-        // Check for key press to stop
-        if (check_key_press()) {
+
+        draw_text(5, 5, "Graphics Demo", 0xFFFFFF);
+        draw_text(5, 15, "Frame:", 0xFFFFFF);
+        draw_number(50, 15, frame_count, 0xFFFFFF);
+
+        if (check_key_press())
             demo_running = 0;
-        }
-        
+
         frame_count++;
-        
-        // Small delay
-        for (volatile int i = 0; i < 10000; i++);
+        for (volatile int d = 0; d < 15000; d++) ;
     }
-    
+
     kprint("Graphics demo completed!\n");
 }
 
-// Clear graphics screen
 void clear_graphics_screen(void) {
-    // Clear screen with black
-    for (int y = 0; y < 480; y++) {
-        for (int x = 0; x < 640; x++) {
+    for (uint32_t y = 0; y < VIDEO_HEIGHT; y++) {
+        for (uint32_t x = 0; x < VIDEO_WIDTH; x++) {
             set_pixel(x, y, 0x000000);
         }
     }
@@ -118,22 +153,36 @@ void draw_circle(uint32_t x, uint32_t y, uint32_t radius, uint32_t color) {
     }
 }
 
-// Draw line
+/* Integer Bresenham line (no floating point) */
 void draw_line(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint32_t color) {
-    int dx = x2 - x1;
-    int dy = y2 - y1;
-    int steps = (abs(dx) > abs(dy)) ? abs(dx) : abs(dy);
-    
-    float x_inc = (float)dx / steps;
-    float y_inc = (float)dy / steps;
-    
-    float x = x1;
-    float y = y1;
-    
-    for (int i = 0; i <= steps; i++) {
-        set_pixel((int)x, (int)y, color);
-        x += x_inc;
-        y += y_inc;
+    int dx = (int)(x2 - x1);
+    int dy = (int)(y2 - y1);
+    int ax = dx < 0 ? -dx : dx;
+    int ay = dy < 0 ? -dy : dy;
+    int sx = dx < 0 ? -1 : 1;
+    int sy = dy < 0 ? -1 : 1;
+
+    int x = (int)x1;
+    int y = (int)y1;
+
+    if (ax > ay) {
+        int err = ax / 2;
+        while (1) {
+            set_pixel((uint32_t)x, (uint32_t)y, color);
+            if (x == (int)x2) break;
+            err -= ay;
+            if (err < 0) { y += sy; err += ax; }
+            x += sx;
+        }
+    } else {
+        int err = ay / 2;
+        while (1) {
+            set_pixel((uint32_t)x, (uint32_t)y, color);
+            if (y == (int)y2) break;
+            err -= ax;
+            if (err < 0) { x += sx; err += ay; }
+            y += sy;
+        }
     }
 }
 
@@ -145,29 +194,13 @@ void draw_text(uint32_t x, uint32_t y, const char* text, uint32_t color) {
     }
 }
 
-// Draw character
 void draw_char(uint32_t x, uint32_t y, char c, uint32_t color) {
-    // Simple 8x8 font data (simplified)
-    static const uint8_t font_data[128][8] = {
-        // Basic ASCII characters
-        {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // Space
-        {0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x18, 0x00}, // !
-        // Add more character definitions...
-    };
-    
-    uint8_t char_data[8];
-    if (c < 128) {
-        for (int i = 0; i < 8; i++) {
-            char_data[i] = font_data[(unsigned char)c][i]; 
-        }
-    }
-    
-    // Draw character
+    unsigned int ch = (unsigned char)c & 0x7F;
     for (int py = 0; py < 8; py++) {
+        uint8_t line = font_8x8[ch][py];
         for (int px = 0; px < 8; px++) {
-            if (char_data[py] & (0x80 >> px)) {
+            if (line & (0x80u >> px))
                 set_pixel(x + px, y + py, color);
-            }
         }
     }
 }
@@ -179,20 +212,31 @@ void draw_number(uint32_t x, uint32_t y, uint32_t number, uint32_t color) {
     draw_text(x, y, buffer, color);
 }
 
-// Set pixel
 void set_pixel(uint32_t x, uint32_t y, uint32_t color) {
-    if (x >= 640 || y >= 480) return;
-    
-    // Calculate VRAM address
-    uint32_t vram_addr = 0x70000000 + (y * 640 + x) * 4;
-    *(uint32_t*)vram_addr = color;
+    if (x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT) return;
+
+#if defined(PS2_HARDWARE)
+    {
+        uint32_t vram_addr = FRAMEBUFFER_ADDR + (y * VIDEO_WIDTH + x) * 4;
+        *(uint32_t *)vram_addr = color;
+    }
+#else
+    {
+        uint8_t idx = color_to_palette(color);
+        uint32_t off = y * VIDEO_WIDTH + x;
+        *(uint8_t *)(FRAMEBUFFER_ADDR + off) = idx;
+    }
+#endif
 }
 
-// Check for key press
 int check_key_press(void) {
+#ifdef PS2_HARDWARE
     uint32_t key_data;
     asm volatile("call sys_ps2_controller_read" : "=a"(key_data));
     return (key_data & 0x00000001) != 0;
+#else
+    return keyboard_has_key();
+#endif
 }
 
 // Convert integer to string

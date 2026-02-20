@@ -2,6 +2,21 @@
 #include "fs.h"
 #include "syscalls.h"
 #include "kernel.h"
+#include "video.h"
+#include "graphics.h"
+#include "game.h"
+
+/* VGA attribute byte: (bg << 4) | fg. Bold CLI palette. */
+#define C_DEFAULT  0x07  /* light gray on black */
+#define C_BRIGHT   0x0F  /* white */
+#define C_DIM      0x08  /* dark gray */
+#define C_GREEN    0x0A  /* green */
+#define C_CYAN     0x0B  /* cyan */
+#define C_RED      0x0C  /* red */
+#define C_YELLOW   0x0E  /* yellow */
+#define C_MAGENTA  0x0D  /* magenta */
+#define C_BLUE     0x09  /* light blue */
+#define C_GREEN_BG 0x2A  /* green on dark green (accent) */
 
 // Shell commands structure
 typedef struct {
@@ -68,11 +83,44 @@ static shell_command_t commands[] = {
 };
 
 void init_shell(void) {
-    kprint("\nPS2 x86 Enhanced Shell v3.0 - Ultimate Edition\n");
-    kprint("Type 'help' for available commands\n");
-    kprint("Type 'ps2info' for PS2 hardware information\n");
-    kprint("Type 'demo' for graphics demonstrations\n");
-    kprint("Type 'game' to launch games\n");
+    kprint("\n  ");
+    kprint_color("############################################\n", C_CYAN);
+    kprint("  ");
+    kprint_color("#", C_CYAN);
+    kprint("  ");
+    kprint_color("ASMOS", C_BRIGHT);
+    kprint("  x86  ");
+    kprint_color("KERNEL", C_YELLOW);
+    kprint("  ");
+    kprint_color("SHELL", C_GREEN);
+    kprint("              ");
+    kprint_color("#\n", C_CYAN);
+    kprint("  ");
+    kprint_color("############################################\n", C_CYAN);
+    kprint("  ");
+    kprint_color("  >> ", C_DIM);
+    kprint_color("help", C_YELLOW);
+    kprint_color(" for commands  |  ", C_DIM);
+    kprint_color("root@asmos", C_CYAN);
+    kprint_color(" ready", C_GREEN);
+    kprint("\n\n");
+}
+
+/* Parse "cmd args" from input: first word -> cmd, rest (trimmed) -> args. */
+static void parse_cmd_args(const char *input, char *cmd, unsigned int cmd_max, char *args, unsigned int args_max) {
+    unsigned int i = 0;
+    while (input[i] == ' ' || input[i] == '\t') i++;
+    unsigned int cmd_len = 0;
+    while (input[i] && input[i] != '\n' && input[i] != '\r' && input[i] != ' ' && input[i] != '\t' && cmd_len < cmd_max - 1)
+        cmd[cmd_len++] = input[i++];
+    cmd[cmd_len] = '\0';
+    while (input[i] == ' ' || input[i] == '\t') i++;
+    unsigned int args_len = 0;
+    while (input[i] && input[i] != '\n' && input[i] != '\r' && args_len < args_max - 1)
+        args[args_len++] = input[i++];
+    while (args_len > 0 && (args[args_len - 1] == ' ' || args[args_len - 1] == '\t'))
+        args_len--;
+    args[args_len] = '\0';
 }
 
 void start_shell(void) {
@@ -84,8 +132,8 @@ void start_shell(void) {
         print_prompt();
         sys_read_line(input, sizeof(input));
         
-        // Parse command and arguments
-        if (ksscanf(input, "%63s %447[^\n]", cmd, args) < 1) {
+        parse_cmd_args(input, cmd, sizeof(cmd), args, sizeof(args));
+        if (cmd[0] == '\0') {
             continue;
         }
         
@@ -100,53 +148,113 @@ void start_shell(void) {
         }
         
         if (!found) {
-            kprintf("Unknown command: %s\n", cmd);
-            kprint("Type 'help' for available commands\n");
+            kprint_color("  >> ", C_DIM);
+            kprint_color("unknown command", C_RED);
+            kprint(": ");
+            kprint_color(cmd, C_BRIGHT);
+            kprint("\n  ");
+            kprint_color("run 'help' for command list\n", C_DIM);
         }
     }
 }
 
 // Enhanced command functions
 static void cmd_help(char *args) {
-    kprint("PS2 x86 OS v3.0 - Available Commands:\n");
-    kprint("=====================================\n");
-    for (int i = 0; commands[i].name; i++) {
-        kprintf("  %-12s - %s\n", commands[i].name, commands[i].description);
-    }
-    kprint("\nAdvanced PS2 Features:\n");
-    kprint("  Network: ping, ftp, telnet, irc\n");
-    kprint("  Multimedia: sound, music, graphics, demo\n");
-    kprint("  Gaming: game, controller\n");
-    kprint("  System: timer, benchmark, system\n");
+    kprint("\n  ");
+    kprint_color(" COMMANDS ", C_GREEN_BG);
+    kprint_color(" asmos shell ", C_DIM);
+    kprint("\n  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("  ");
+    kprint_color("core", C_CYAN);
+    kprint("     ");
+    kprintf("%-10s  %s\n", "help", "this help");
+    kprintf("     %-10s  %s\n", "clear", "clear screen");
+    kprintf("     %-10s  %s\n", "exit", "exit shell");
+    kprint("  ");
+    kprint_color("fs", C_YELLOW);
+    kprint("       ");
+    kprintf("%-10s  %s\n", "ls", "list directory");
+    kprintf("     %-10s  %s\n", "cd", "change directory");
+    kprintf("     %-10s  %s\n", "cat", "show file");
+    kprint("  ");
+    kprint_color("system", C_MAGENTA);
+    kprint("   ");
+    kprintf("%-10s  %s\n", "meminfo", "memory info");
+    kprintf("     %-10s  %s\n", "ps2info", "hardware info");
+    kprintf("     %-10s  %s\n", "date", "date/time");
+    kprintf("     %-10s  %s\n", "reboot", "reboot");
+    kprint("  ");
+    kprint_color("net", C_BLUE);
+    kprint("       ");
+    kprintf("%-10s  %s\n", "network", "network status");
+    kprintf("     %-10s  %s\n", "ping", "ping host");
+    kprintf("     %-10s  %s\n", "ftp", "FTP client");
+    kprintf("     %-10s  %s\n", "telnet", "telnet");
+    kprintf("     %-10s  %s\n", "irc", "IRC client");
+    kprint("  ");
+    kprint_color("media", C_GREEN);
+    kprint("    ");
+    kprintf("%-10s  %s\n", "sound", "sound control");
+    kprintf("     %-10s  %s\n", "graphics", "GPU control");
+    kprintf("     %-10s  %s\n", "music", "music player");
+    kprintf("     %-10s  %s\n", "demo", "graphics demo");
+    kprint("  ");
+    kprint_color("run", C_CYAN);
+    kprint("       ");
+    kprintf("%-10s  %s\n", "game", "launch game");
+    kprintf("     %-10s  %s\n", "controller", "controller");
+    kprintf("     %-10s  %s\n", "timer", "timers");
+    kprintf("     %-10s  %s\n", "benchmark", "benchmarks");
+    kprintf("     %-10s  %s\n", "system", "system status");
+    kprint("  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("\n");
 }
 
 static void cmd_ls(char *args) {
-    kprint("Directory listing:\n");
-    kprint("==================\n");
+    kprint("\n  ");
+    kprint_color(" [ ", C_DIM);
+    kprint_color("ls", C_CYAN);
+    kprint_color(" ] ", C_DIM);
+    kprint(" current directory\n  ");
+    kprint_color("----------------------------------------\n", C_DIM);
     fat12_list_files();
+    kprint("  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("\n");
 }
 
 static void cmd_cd(char *args) {
     if (ksstrcmp(args, "") == 0) {
-        kprint("Current directory: /\n");
+        kprint("  ");
+        kprint_color("cwd", C_DIM);
+        kprint(" /\n");
     } else {
-        kprintf("Changing to directory: %s\n", args);
-        kprint("Directory navigation not yet implemented\n");
+        kprint("  ");
+        kprint_color("cd", C_CYAN);
+        kprintf(" %s ", args);
+        kprint_color("(nav not impl)\n", C_DIM);
     }
 }
 
 static void cmd_cat(char *args) {
     if (ksstrcmp(args, "") == 0) {
-        kprint("Usage: cat <filename>\n");
+        kprint("  ");
+        kprint_color("usage", C_DIM);
+        kprint(": ");
+        kprint_color("cat", C_CYAN);
+        kprint(" <file>\n");
         return;
     }
-    
-    kprintf("Displaying file: %s\n", args);
-    kprint("File reading not yet implemented\n");
+    kprint("  ");
+    kprint_color("cat", C_CYAN);
+    kprintf(" %s ", args);
+    kprint_color("(read not impl)\n", C_DIM);
 }
 
 static void cmd_clear(char *args) {
-    kprint("Screen cleared.\n");
+    clear_screen();
 }
 
 static void cmd_date(char *args) {
@@ -168,49 +276,61 @@ static void cmd_reboot(char *args) {
 static void cmd_meminfo(char *args) {
     uint32_t mem_kb;
     asm volatile("call get_memory_info" : "=a"(mem_kb));
-    kprintf("Memory Information:\n");
-    kprintf("==================\n");
-    kprintf("Total Memory: %u KB (%u MB)\n", mem_kb, mem_kb / 1024);
-    kprintf("Available Memory: %u KB\n", mem_kb - 1024);
-    kprintf("Memory Type: PS2 DDR SDRAM\n");
-    kprintf("Memory Speed: 150MHz\n");
-    kprintf("Memory Bandwidth: 2.4 GB/s\n");
+    kprint("\n  ");
+    kprint_color(" memory ", C_MAGENTA);
+    kprint_color(" ----------------------------------------\n", C_DIM);
+    kprint("    total     ");
+    kprintf("%u KB (%u MB)\n", mem_kb, mem_kb / 1024);
+    kprint("    free      ");
+    kprintf("%u KB\n", mem_kb - 1024);
+    kprint("    type      ");
+    kprint_color("DDR SDRAM", C_CYAN);
+    kprint(" @ 150MHz, 2.4 GB/s\n");
+    kprint("  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("\n");
 }
 
 static void cmd_ps2info(char *args) {
-    kprint("PS2 Hardware Information:\n");
-    kprint("=========================\n");
-    kprint("System: PlayStation 2 (PS2)\n");
-    kprint("CPU: MIPS R5900 (Emotion Engine) @ 294MHz\n");
-    kprint("GPU: Graphics Synthesizer @ 147MHz\n");
-    kprint("Memory: 32MB DDR SDRAM @ 150MHz\n");
-    kprint("Storage: CD/DVD Drive\n");
-    kprint("Controllers: DualShock 2 Support\n");
-    kprint("Network: Ethernet 10/100 Mbps\n");
-    kprint("Sound: SPU2 (48 channels)\n");
-    kprint("OS: PS2 x86 Assembly Real-Mode OS v3.0\n");
-    kprint("Boot Method: Modchip (DMS3)\n");
-    kprint("Features: Networking, Sound, Graphics, Gaming\n");
+    kprint("\n  ");
+    kprint_color(" hardware ", C_YELLOW);
+    kprint_color(" --------------------------------------\n", C_DIM);
+    kprint("    system    ");
+    kprint_color("PlayStation 2", C_CYAN);
+    kprint("\n    cpu       MIPS R5900 (EE) @ 294MHz\n");
+    kprint("    gpu       Graphics Synthesizer @ 147MHz\n");
+    kprint("    ram       32MB DDR @ 150MHz\n");
+    kprint("    storage   CD/DVD\n");
+    kprint("    input     DualShock 2\n");
+    kprint("    net       Ethernet 10/100\n");
+    kprint("    sound     SPU2 (48 ch)\n");
+    kprint("  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("\n");
 }
 
 static void cmd_network(char *args) {
-    kprint("PS2 Network Operations:\n");
-    kprint("=======================\n");
-    kprint("Initializing network adapter...\n");
+    kprint("\n  ");
+    kprint_color(" network ", C_BLUE);
+    kprint_color(" -------------------------------------\n", C_DIM);
+    kprint("    init     ");
     
-    // Initialize network
     int result;
     asm volatile("call sys_network_init" : "=a"(result));
     
     if (result) {
-        kprint("Network adapter initialized successfully!\n");
-        kprint("IP Address: 10.0.0.1\n");
-        kprint("Netmask: 255.255.255.0\n");
-        kprint("Gateway: 10.0.0.254\n");
-        kprint("Available commands: ping, ftp, telnet, irc\n");
+        kprint_color("ok", C_GREEN);
+        kprint("\n    ip        10.0.0.1\n");
+        kprint("    netmask   255.255.255.0\n");
+        kprint("    gateway  10.0.0.254\n");
+        kprint("    cmds      ping, ftp, telnet, irc\n");
     } else {
-        kprint("Network adapter not found or failed to initialize\n");
+        kprint_color("failed", C_RED);
+        kprint(" (adapter not found)\n");
     }
+    kprint("  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("\n");
 }
 
 static void cmd_sound(char *args) {
@@ -288,13 +408,17 @@ static void cmd_controller(char *args) {
 
 static void cmd_ping(char *args) {
     if (ksstrcmp(args, "") == 0) {
-        kprint("Usage: ping <host>\n");
+        kprint("  ");
+        kprint_color("usage", C_DIM);
+        kprint(": ");
+        kprint_color("ping", C_CYAN);
+        kprint(" <host>\n");
         return;
     }
-    
-    kprintf("Pinging %s...\n", args);
-    kprint("Network ping functionality not yet implemented\n");
-    kprint("This would send ICMP echo requests to the specified host\n");
+    kprint("  ");
+    kprint_color("ping", C_CYAN);
+    kprintf(" %s ", args);
+    kprint_color("(not impl)\n", C_DIM);
 }
 
 static void cmd_ftp(char *args) {
@@ -334,15 +458,16 @@ static void cmd_irc(char *args) {
 }
 
 static void cmd_game(char *args) {
-    kprint("PS2 Game Launcher:\n");
-    kprint("==================\n");
-    kprint("Game launcher not yet implemented\n");
-    kprint("Would allow launching games from CD/DVD\n");
-    kprint("Features planned:\n");
-    kprint("  - Game list from CD\n");
-    kprint("  - Game launching\n");
-    kprint("  - Save game management\n");
-    kprint("  - Controller configuration\n");
+    int idx = -1;
+    if (args && args[0] != '\0') {
+        ksscanf(args, "%d", &idx);
+        if (idx >= 1) {
+            launch_game(idx - 1);
+            return;
+        }
+    }
+    list_games();
+    kprint("Usage: game <number>  (e.g. game 1)\n");
 }
 
 static void cmd_music(char *args) {
@@ -359,73 +484,76 @@ static void cmd_music(char *args) {
 }
 
 static void cmd_demo(char *args) {
-    kprint("PS2 Graphics Demos:\n");
-    kprint("===================\n");
-    kprint("Running graphics demonstration...\n");
-    
-    // Initialize graphics
-    asm volatile("call sys_graphics_init");
-    
-    // Draw some demo graphics
-    kprint("Drawing demo graphics...\n");
-    
-    // This would call sys_graphics_draw with various parameters
-    kprint("Demo features:\n");
-    kprint("  - Color gradients\n");
-    kprint("  - Animated shapes\n");
-    kprint("  - Text rendering\n");
-    kprint("  - 3D wireframes\n");
-    kprint("  - Particle effects\n");
+    (void)args;
+    kprint("Switching to graphics mode - running demo...\n");
+#ifndef PS2_HARDWARE
+    video_set_mode_13h();
+#endif
+    init_graphics_demo();
+    run_graphics_demo();
+#ifndef PS2_HARDWARE
+    video_set_mode_text();
+#endif
+    kprint("Back to text mode.\n");
 }
 
 static void cmd_benchmark(char *args) {
-    kprint("PS2 System Benchmarks:\n");
-    kprint("======================\n");
-    kprint("Running system benchmarks...\n");
+    kprint("\n  ");
+    kprint_color(" benchmark ", C_MAGENTA);
+    kprint_color(" ---------------------------------\n", C_DIM);
+    kprint("    running ... ");
     
-    // CPU benchmark
-    kprint("CPU Benchmark:\n");
     volatile int cpu_result = 0;
     for (volatile int i = 0; i < 1000000; i++) {
         cpu_result += i;
     }
-    kprintf("CPU performance: %d operations\n", cpu_result);
     
-    // Memory benchmark
-    kprint("Memory Benchmark:\n");
-    kprint("Memory allocation test...\n");
-    kprint("Memory performance: Good\n");
-    
-    // Graphics benchmark
-    kprint("Graphics Benchmark:\n");
-    kprint("Graphics performance: Excellent\n");
-    
-    kprint("Benchmark completed!\n");
+    kprint_color("cpu", C_CYAN);
+    kprintf(" %d ops  ", cpu_result);
+    kprint_color("mem", C_GREEN);
+    kprint(" ok  ");
+    kprint_color("gpu", C_YELLOW);
+    kprint(" ok\n");
+    kprint("  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("\n");
 }
 
 static void cmd_system(char *args) {
-    kprint("PS2 System Control:\n");
-    kprint("===================\n");
-    kprint("System status:\n");
-    kprint("  - CPU: MIPS R5900 @ 294MHz\n");
-    kprint("  - GPU: Graphics Synthesizer @ 147MHz\n");
-    kprint("  - Memory: 32MB DDR SDRAM\n");
-    kprint("  - Network: Ethernet 10/100\n");
-    kprint("  - Sound: SPU2 (48 channels)\n");
-    kprint("  - Storage: CD/DVD Drive\n");
-    kprint("  - Controllers: DualShock 2\n");
-    kprint("  - Temperature: Normal\n");
-    kprint("  - Power: AC Adapter\n");
+    kprint("\n  ");
+    kprint_color(" system ", C_GREEN);
+    kprint_color(" ---------------------------------------\n", C_DIM);
+    kprint("    cpu       MIPS R5900 @ 294MHz\n");
+    kprint("    gpu       Graphics Synthesizer @ 147MHz\n");
+    kprint("    memory    32MB DDR\n");
+    kprint("    network   Ethernet 10/100\n");
+    kprint("    sound     SPU2 (48ch)\n");
+    kprint("    storage   CD/DVD\n");
+    kprint("    ctrl      DualShock 2\n");
+    kprint("    temp      ");
+    kprint_color("ok", C_GREEN);
+    kprint("    pwr       AC\n");
+    kprint("  ");
+    kprint_color("----------------------------------------\n", C_DIM);
+    kprint("\n");
 }
 
 static void cmd_exit(char *args) {
-    kprint("Shutting down PS2 x86 OS v3.0...\n");
-    kprint("Thank you for using the Ultimate PS2 x86 OS!\n");
-    kprint("Goodbye! 🎮\n");
+    kprint("\n  ");
+    kprint_color(" session ended ", C_DIM);
+    kprint("\n  ");
+    kprint_color("asmos", C_CYAN);
+    kprint_color(" out. ", C_DIM);
+    kprint("\n\n");
     sys_exit(0);
 }
 
 void print_prompt(void) {
-    kprint_color("PS2OS ", 0x2A);  // light green
-    kprint_color("[user@ps2]:~$ ", 0x1F);  // light blue on white
+    kprint_color("  ", C_DIM);
+    kprint_color("root", C_CYAN);
+    kprint_color("@", C_DIM);
+    kprint_color("asmos", C_YELLOW);
+    kprint_color(":", C_DIM);
+    kprint_color("~", C_GREEN);
+    kprint_color(" $ ", C_BRIGHT);
 }

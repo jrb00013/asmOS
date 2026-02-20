@@ -2,10 +2,11 @@
 #define GRAPHICS_H
 
 #include <stdint.h>
+#include "video.h"
 
-// Graphics resolution
-#define GRAPHICS_WIDTH  640
-#define GRAPHICS_HEIGHT 480
+/* Use video layer dimensions (320x200 on PC, 640x480 on PS2) */
+#define GRAPHICS_WIDTH  VIDEO_WIDTH
+#define GRAPHICS_HEIGHT VIDEO_HEIGHT
 
 // Color definitions
 #define COLOR_BLACK     0x000000
@@ -17,7 +18,9 @@
 #define COLOR_CYAN      0x00FFFF
 #define COLOR_MAGENTA   0xFF00FF
 
-// Graphics demo functions
+/* Call after video_set_mode_13h() to set default palette (PC only). */
+void graphics_set_palette(void);
+
 void init_graphics_demo(void);
 void run_graphics_demo(void);
 void stop_graphics_demo(void);

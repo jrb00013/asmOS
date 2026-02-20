@@ -29,6 +29,7 @@ void show_enhanced_boot_splash(void);
 // Color printing
 void kprint_char_color(char c, uint8_t color);
 void kprint_color(const char* str, uint8_t color);
+void clear_screen(void);
 
 // PS2-specific functions
 void halt_system(void);

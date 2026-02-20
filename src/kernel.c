@@ -2,8 +2,9 @@
 #include "shell.h"
 #include "memory_manager.h"
 #include "scheduler.h"
-#include "fs.h"  // New filesystem header
-#include "kernel.h" 
+#include "fs.h"
+#include "kernel.h"
+#include "game.h" 
 #include <stdarg.h>
 #include <stdint.h>
 
@@ -60,6 +61,8 @@ void kernel_main(void) {
     
     kprint("Initializing enhanced shell...\n");
     init_shell();
+    kprint("Initializing game system...\n");
+    init_game_system();
 
     kprint("Showing enhanced boot splash...\n");
     show_enhanced_boot_splash(); 
@@ -252,7 +255,13 @@ void kprint_color(const char *str, uint8_t color) {
     }
 }
 
-
+void clear_screen(void) {
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        vga_buffer[i] = ((uint16_t)DEFAULT_COLOR << 8) | ' ';
+    }
+    cursor_row = 0;
+    cursor_col = 0;
+}
 
 void putchar(char c) {
     if (c == '\n') {

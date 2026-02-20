@@ -2,7 +2,19 @@
 #include "kernel.h"
 #include <stdint.h>
 #include <stddef.h>
-#include <string.h>
+
+/* Minimal memcpy/memset for freestanding (no libc string.h) */
+static inline void *memcpy(void *dest, const void *src, size_t n) {
+    unsigned char *d = (unsigned char *)dest;
+    const unsigned char *s = (const unsigned char *)src;
+    while (n--) *d++ = *s++;
+    return dest;
+}
+static inline void *memset(void *s, int c, size_t n) {
+    unsigned char *p = (unsigned char *)s;
+    while (n--) *p++ = (unsigned char)c;
+    return s;
+}
 
 static char memory_pool[MEMORY_POOL_SIZE];
 static mem_block_t *free_list = NULL;
