@@ -1,4 +1,5 @@
 #include "game.h"
+#include "game_history.h"
 #include "graphics.h"
 #include "kernel.h"
 #include "video.h"
@@ -96,6 +97,7 @@ void launch_game(int game_index) {
     current_game = game_index;
     game_info_t* game = &games[game_index];
 
+    game_history_session_start(game_index, game->name);
     kprintf("Launching %s...\n", game->name);
 
 #ifndef PS2_HARDWARE
@@ -113,6 +115,7 @@ void launch_game(int game_index) {
         game->cleanup_func();
 
     game_running = 0;
+    game_history_session_end(game_index, game->name);
     current_game = -1;
 
 #ifndef PS2_HARDWARE
@@ -250,6 +253,7 @@ void snake_run(void) {
             else if (sc == 0x4D) snake_next_dir = SNAKE_RIGHT;
         }
         snake_tick();
+        game_history_tick();
         if (snake_game_over) break;
         snake_draw();
         for (volatile int d = 0; d < 80000; d++) ;
@@ -347,6 +351,7 @@ void pong_run(void) {
             if (sc == 0x50) { if (pong_ly + PONG_PAD_H < PONG_BOT - 2) pong_ly += 8; }
         }
         pong_tick();
+        game_history_tick();
         pong_draw();
         for (volatile int d = 0; d < 40000; d++) ;
     }
@@ -476,6 +481,7 @@ void tetris_run(void) {
             if (sc == 0x48) { int r = (tetris_rot + 1) % 4; if (!tetris_collide(0, 0, r)) tetris_rot = r; }
         }
         tetris_drop_ticks++;
+        game_history_tick();
         if (tetris_drop_ticks >= TETRIS_DROP_MAX) {
             tetris_drop_ticks = 0;
             if (!tetris_collide(0, 1, tetris_rot)) tetris_py++;
@@ -628,6 +634,7 @@ void space_invaders_run(void) {
             if (sc == 0x39) si_fire();
         }
         space_invaders_tick();
+        game_history_tick();
         space_invaders_draw();
         for (volatile int d = 0; d < 15000; d++) ;
     }
@@ -742,6 +749,7 @@ void racing_run(void) {
             if (sc == 0x4D && race_lane < RACE_LANES - 1) race_lane++;
         }
         racing_tick();
+        game_history_tick();
         racing_draw();
         for (volatile int d = 0; d < 35000; d++) ;
     }
