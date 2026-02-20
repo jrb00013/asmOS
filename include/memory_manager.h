@@ -18,5 +18,6 @@ typedef struct mem_block {
 void init_memory_manager(void);
 void *malloc(size_t size);
 void free(void *ptr);
+unsigned int get_memory_usage_percent(void);
 
 #endif // MEMORY_MANAGER_H

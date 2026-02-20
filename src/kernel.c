@@ -4,7 +4,15 @@
 #include "scheduler.h"
 #include "fs.h"
 #include "kernel.h"
-#include "game.h" 
+#include "game.h"
+#include "game_history.h"
+#include "music.h"
+#include "controller_remap.h"
+#include "save_manager.h"
+#include "dashboard.h"
+#include "storage.h"
+#include "pause_engine.h"
+#include "memory_budget.h"
 #include <stdarg.h>
 #include <stdint.h>
 
@@ -59,10 +67,18 @@ void kernel_main(void) {
     init_scheduler();
     init_fat12();  // Initialize filesystem
     
+    storage_init();
+    pause_engine_init();
+    memory_budget_init();
     kprint("Initializing enhanced shell...\n");
     init_shell();
     kprint("Initializing game system...\n");
     init_game_system();
+    game_history_init();
+    music_init();
+    controller_remap_init();
+    save_manager_init();
+    dashboard_init();
 
     kprint("Showing enhanced boot splash...\n");
     show_enhanced_boot_splash(); 

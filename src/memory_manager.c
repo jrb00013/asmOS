@@ -138,6 +138,18 @@ void *calloc(size_t nmemb, size_t size) {
     return ptr;
 }
 
+unsigned int get_memory_usage_percent(void) {
+    size_t used = 0;
+    mem_block_t *current = free_list;
+    while (current) {
+        if (!current->free)
+            used += sizeof(mem_block_t) + current->size;
+        current = current->next;
+    }
+    if (MEMORY_POOL_SIZE == 0) return 0;
+    return (unsigned int)((used * 100) / MEMORY_POOL_SIZE);
+}
+
 void print_memory_state(void) {
     mem_block_t *current = free_list;
     kprint("Memory State:\n");

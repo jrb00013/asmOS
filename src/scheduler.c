@@ -2,50 +2,67 @@
 #include "msp.h"
 #include "kernel.h"
 #include "memory_manager.h"
-
+#include <stdint.h>
 
 static struct {
     void (*func)(void);
-    uint32_t esp;  // Stack pointer for context switching
+    uint32_t esp;  /* Stack pointer for context switching */
 } task_list[MAX_TASKS];
 
 static int task_count = 0;
-static int current_task = 0;
+static int current_task = -1;  /* -1 until first yield or run */
 
 void add_task(void (*task_func)(void)) {
     if (task_count < MAX_TASKS) {
-        // Allocate stack for the task
         uint8_t *stack = (uint8_t*)malloc(1024);
         if (!stack) return;
-        
-        // Initialize task context
         task_list[task_count].func = task_func;
-        task_list[task_count].esp = (uint32_t)(stack + 1024 - 16);
-        
-        // Set up initial stack frame
-        uint32_t *stack_top = (uint32_t*)(stack + 1024 - 16);
-        stack_top[-1] = (uint32_t)task_func;  // EIP
-        stack_top[-2] = 0x202;               // EFLAGS (interrupts enabled)
-        
+        /* Stack: high addr = top. We need space for pusha (32 bytes) + ret addr (4). */
+        task_list[task_count].esp = (uint32_t)(stack + 1024 - 36);
+        uint32_t *stack_top = (uint32_t*)(stack + 1024 - 36);
+        stack_top[0] = 0; stack_top[1] = 0; stack_top[2] = 0; stack_top[3] = 0;
+        stack_top[4] = 0; stack_top[5] = 0; stack_top[6] = 0; stack_top[7] = 0;  /* pusha placeholder */
+        stack_top[8] = (uint32_t)task_func;  /* return addr = task entry */
         task_count++;
     }
 }
 
+task_id_t task_current(void) {
+    return (task_id_t)current_task;
+}
+
+/* Save current esp, switch to next task's esp, popa, ret. Cooperative multitasking. */
+void task_yield(void) {
+    if (task_count <= 0) return;
+    if (current_task < 0) current_task = 0;
+    int next = (current_task + 1) % task_count;
+    uint32_t *save_to = &task_list[current_task].esp;
+    uint32_t load_esp = task_list[next].esp;
+    current_task = next;
+    asm volatile(
+        "pusha\n\t"
+        "movl %0, %%eax\n\t"
+        "movl %%esp, (%%eax)\n\t"
+        "movl %1, %%esp\n\t"
+        "popa\n\t"
+        "ret\n\t"
+        : : "r"(save_to), "r"(load_esp) : "eax", "memory"
+    );
+}
+
 void run_scheduler(void) {
-    while (1) {
-        // Switch to next task
-        current_task = (current_task + 1) % task_count;
-        
-        // Assembly context switch
-        asm volatile(
-            "mov %0, %%esp\n\t"  // Load new stack
-            "popa\n\t"           // Restore registers
-            "iret"               // Return to new task
-            : 
-            : "r"(task_list[current_task].esp)
-            : "memory"
-        );
-    }
+    if (task_count <= 0) return;
+    current_task = 0;
+    /* Load first task's stack and jump to it. */
+    uint32_t esp = task_list[0].esp;
+    asm volatile(
+        "movl %0, %%esp\n\t"
+        "popa\n\t"
+        "ret\n\t"
+        : : "r"(esp) : "memory"
+    );
+    /* When all tasks yield back to us we might land here; loop. */
+    while (1) task_yield();
 }
 
 void init_scheduler(void) {
