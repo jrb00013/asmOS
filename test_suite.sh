@@ -230,7 +230,7 @@ test_c_compilation() {
     if ! command -v gcc >/dev/null 2>&1; then
         cc="i686-elf-gcc"
     fi
-    local c_files=("src/kernel.c" "src/shell.c" "src/memory_manager.c" "src/scheduler.c" "src/graphics.c" "src/game.c" "src/vga.c" "src/keyboard.c" "src/font_8x8.c" "src/msp.c")
+    local c_files=("src/kernel.c" "src/shell.c" "src/memory_manager.c" "src/scheduler.c" "src/graphics.c" "src/game.c" "src/vga.c" "src/keyboard.c" "src/font_8x8.c" "src/msp.c" "src/game_history.c" "src/music.c" "src/controller_remap.c" "src/save_manager.c" "src/dashboard.c")
     
     for file in "${c_files[@]}"; do
         increment_test
@@ -330,7 +330,7 @@ test_filesystem() {
 test_shell() {
     print_header "=== Testing Shell Commands ==="
     
-    local commands=("help" "ls" "meminfo" "ps2info" "clear" "echo" "reboot" "graphics" "demo" "game" "exit")
+    local commands=("help" "ls" "meminfo" "ps2info" "clear" "echo" "reboot" "graphics" "demo" "game" "games" "music" "controller" "saves" "dashboard" "exit")
     
     for cmd in "${commands[@]}"; do
         increment_test
@@ -340,6 +340,79 @@ test_shell() {
             test_failed "Shell command missing: $cmd"
         fi
     done
+}
+
+# Agent 3 (Chris) UX/Applications testing
+test_agent3_ux() {
+    print_header "=== Testing Agent 3 (Chris) UX/Applications ==="
+    
+    local modules=("game_history" "music" "controller_remap" "save_manager" "dashboard")
+    for mod in "${modules[@]}"; do
+        increment_test
+        if [ -f "src/${mod}.c" ] && [ -f "include/${mod}.h" ]; then
+            test_passed "Module: $mod (src + include)"
+        else
+            test_failed "Module missing: $mod"
+        fi
+    done
+    
+    increment_test
+    if grep -q "game_history_session_start\|game_history_session_end" src/game.c; then
+        test_passed "Game history hooked in game.c"
+    else
+        test_failed "Game history not hooked in game.c"
+    fi
+    
+    increment_test
+    if grep -q "game_history_tick" src/game.c; then
+        test_passed "Game history tick in game loops"
+    else
+        test_failed "Game history tick missing in game.c"
+    fi
+    
+    for cmd in games music controller saves dashboard; do
+        increment_test
+        if grep -q "cmd_$cmd" src/shell.c; then
+            test_passed "Shell command: $cmd"
+        else
+            test_failed "Shell command missing: $cmd"
+        fi
+    done
+    
+    increment_test
+    if grep -q "game_history_print_history\|games last" src/shell.c; then
+        test_passed "Games subcommands (history|stats|last)"
+    else
+        test_failed "Games subcommands missing"
+    fi
+    
+    increment_test
+    if grep -q "music play\|music list\|music background\|music playlist" src/shell.c; then
+        test_passed "Music subcommands (play|list|background|playlist)"
+    else
+        test_failed "Music subcommands missing"
+    fi
+    
+    increment_test
+    if grep -q "controller_profile_save\|controller_profile_load\|controller_set_sensitivity" src/shell.c; then
+        test_passed "Controller profile and set API used in shell"
+    else
+        test_failed "Controller profile/set missing in shell"
+    fi
+    
+    increment_test
+    if grep -q "save_manager_list\|save_manager_backup\|save_manager_restore" src/shell.c; then
+        test_passed "Save manager CLI (list|backup|restore)"
+    else
+        test_failed "Save manager CLI missing"
+    fi
+    
+    increment_test
+    if grep -q "dashboard_show" src/shell.c; then
+        test_passed "Dashboard command"
+    else
+        test_failed "Dashboard command missing"
+    fi
 }
 
 # Hardware detection testing
@@ -516,6 +589,11 @@ run_test_suite() {
         "integration")
             test_integration
             ;;
+        "agent3")
+            test_c_compilation
+            test_shell
+            test_agent3_ux
+            ;;
         "all")
             test_dependencies
             test_build
@@ -524,6 +602,7 @@ run_test_suite() {
             test_memory
             test_filesystem
             test_shell
+            test_agent3_ux
             test_hardware_detection
             test_performance
             test_security
@@ -576,6 +655,7 @@ show_usage() {
     echo "  security    - Test security features"
     echo "  docs        - Test documentation"
     echo "  integration - Test integration"
+    echo "  agent3      - Agent 3 (Chris) UX/Applications: games, music, controller, saves, dashboard"
     echo "  all         - Run all tests (default)"
     echo ""
     echo "VERBOSE options:"
