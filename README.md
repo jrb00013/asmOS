@@ -2,8 +2,6 @@
 
 A next-gen custom operating layer for the PlayStation 2: **CLI power interface**, advanced memory management, and network/party features. Built as a fully-featured x86 Assembly Real-Mode OS (with PS2 targeting), optimized for PS2 hardware with modchip support.
 
-**Vision & roadmap:** See [docs/ROADMAP.md](docs/ROADMAP.md). **UX/Applications (Agent 3 – Chris):** [docs/AGENT3_CHRIS.md](docs/AGENT3_CHRIS.md).
-
 ## PS2 Compatibility
 
 This OS is designed to run on PlayStation 2 consoles with the following specifications:
