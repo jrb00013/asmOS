@@ -1,11 +1,15 @@
-ENTRY(kernel_main)
+ENTRY(_kernel_start)
 
 MEMORY {
-    RAM (rwx) : ORIGIN = 0x10000, LENGTH = 50M
+    RAM (rwx) : ORIGIN = 0x100000, LENGTH = 31M
 }
 
 SECTIONS {
-    . = 0x10000;
+    . = 0x100000;
+
+    .bootsig : {
+        LONG(0x41534D4B);
+    }
 
     .text : ALIGN(4K) {
         *(.text)
@@ -25,7 +29,7 @@ SECTIONS {
     } > RAM :bss
 
     . = ALIGN(4K);
-    _stack_start = . + 4K;
+    _stack_start = . + 16K;
 
     /DISCARD/ : {
         *(.eh_frame)
@@ -35,8 +39,8 @@ SECTIONS {
 }
 
 PHDRS {
-    text PT_LOAD FLAGS(5);   /* R-X */
-    rodata PT_LOAD FLAGS(4); /* R-- */
-    data PT_LOAD FLAGS(6);   /* RW- */
-    bss PT_LOAD FLAGS(6);    /* RW- */
+    text PT_LOAD FLAGS(5);
+    rodata PT_LOAD FLAGS(4);
+    data PT_LOAD FLAGS(6);
+    bss PT_LOAD FLAGS(6);
 }
