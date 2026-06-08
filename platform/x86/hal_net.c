@@ -157,5 +157,8 @@ void plat_net_get_info(plat_net_info_t *out) {
 }
 
 int plat_net_ping(const char *host_ip, uint32_t *rtt_ms) {
+    uint32_t ip;
+    if (net_parse_ip(host_ip, &ip) == 0 && net_icmp_ping(ip, rtt_ms) == 0)
+        return 0;
     return net_ping(host_ip, rtt_ms);
 }
