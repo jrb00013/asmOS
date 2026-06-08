@@ -1,2 +1,5 @@
-*.log 
+*.log
 build/
+disk/
+env/asmos.env
+deploy/

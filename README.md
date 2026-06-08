@@ -32,12 +32,12 @@ This OS is designed to run on PlayStation 2 consoles with the following specific
 
 ### 1. Install Dependencies
 ```bash
-# Ubuntu/Debian
-sudo apt-get update
-sudo apt-get install nasm gcc make dd mkisofs growisofs
+# One-command setup (x86 tools, QEMU, Docker/PS2SDK, verify build)
+./setup.sh
 
-# Install cross-compiler
-sudo apt-get install gcc-multilib gcc-multilib-i686-elf
+# Or manually on Ubuntu/Debian:
+sudo apt-get update
+sudo apt-get install nasm gcc-multilib make dosfstools genisoimage qemu-system-x86
 ```
 
 ### 2. Build the OS
@@ -75,7 +75,9 @@ growisofs -dvd-compat -Z /dev/sr0=ps2os.iso
 - `make ps2-build` - PS2-optimized build
 - `make ps2-test` - Test PS2 build in QEMU
 - `make iso` - Create bootable ISO
+- `make setup` / `./setup.sh` - Install all deps and verify environment
 - `make test-integration` - Build + symbol/stub checks
+- `make ps2-native` - Build PS2 EE ELF for FreeMCBoot
 - `make fmcb-package` - Assemble FreeMCBoot deploy folder
 - `make clean` - Clean build artifacts
 - `make info` - Show build information

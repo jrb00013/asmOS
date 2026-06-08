@@ -44,7 +44,7 @@ KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 OS_IMAGE = $(DISK_DIR)/os.img
 
-.PHONY: all clean run debug gdb ps2-build ps2-test test test-quick quiet test-integration fmcb-package
+.PHONY: all clean run debug gdb ps2-build ps2-test ps2-native test test-quick quiet test-integration fmcb-package setup
 
 CFLAGS += -DPLATFORM_X86=1
 
@@ -147,9 +147,17 @@ test-quick:
 test-integration:
 	@bash tests/integration/run_checks.sh
 
-# Build FreeMCBoot deploy package (requires ps2-native ELF when PS2SDK installed)
-fmcb-package:
+# PS2 native EE ELF for FreeMCBoot (local PS2SDK or Docker via build_ps2_native.sh)
+ps2-native:
+	@bash scripts/build_ps2_native.sh
+
+# Build FreeMCBoot deploy package (requires build/asmos.elf from ps2-native)
+fmcb-package: ps2-native
 	@bash scripts/build_fmcb_package.sh
+
+# Install all development dependencies
+setup:
+	@bash setup.sh
 
 # Show build information
 info:

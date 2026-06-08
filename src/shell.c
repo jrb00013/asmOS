@@ -1,6 +1,9 @@
 #include "shell.h"
 #include "fs.h"
 #include "syscalls.h"
+#ifdef PLATFORM_PS2
+/* PS2 syscall implementations in platform/ps2/io_syscalls.c */
+#endif
 #include "kernel.h"
 #include "video.h"
 #include "graphics.h"
@@ -399,8 +402,11 @@ static void cmd_sound(char *args) {
     kprint("=========================\n");
     kprint("Initializing SPU2 sound system...\n");
     
-    // Initialize sound
+#ifdef PLATFORM_PS2
+    sys_sound_init();
+#else
     asm volatile("call sys_sound_init");
+#endif
     
     kprint("Sound system initialized!\n");
     kprint("SPU2 Features:\n");
@@ -417,8 +423,11 @@ static void cmd_graphics(char *args) {
     kprint("============================\n");
     kprint("Initializing Graphics Synthesizer...\n");
     
-    // Initialize graphics
+#ifdef PLATFORM_PS2
+    sys_graphics_init();
+#else
     asm volatile("call sys_graphics_init");
+#endif
     
     kprint("Graphics system initialized!\n");
     kprint("Graphics Synthesizer Features:\n");
@@ -435,12 +444,14 @@ static void cmd_timer(char *args) {
     kprint("=================\n");
     kprint("Initializing timers...\n");
     
-    // Initialize timers
+#ifdef PLATFORM_PS2
+    sys_timer_init();
+    uint32_t timer_value = sys_timer_get();
+#else
     asm volatile("call sys_timer_init");
-    
-    // Get current timer value
     uint32_t timer_value;
     asm volatile("call sys_timer_get" : "=a"(timer_value));
+#endif
     
     kprintf("Timer initialized! Current value: %u\n", timer_value);
     kprint("Available timers:\n");

@@ -7,16 +7,13 @@ mkdir -p "$OUT/BOOT" "$OUT/asmos"
 
 echo "Building FMCB package at $OUT"
 
-if [ -f "$ROOT/build/asmos.elf" ]; then
-    cp "$ROOT/build/asmos.elf" "$OUT/BOOT/ASMOS.ELF"
-    echo "Copied PS2 native ELF"
-elif [ -f "$ROOT/build/kernel.elf" ]; then
-    cp "$ROOT/build/kernel.elf" "$OUT/BOOT/ASMOS.ELF"
-    echo "Note: using x86 kernel.elf placeholder — build with PS2SDK for native ELF"
-else
-    echo "Run 'make all' first"
+if [ ! -f "$ROOT/build/asmos.elf" ]; then
+    echo "PS2 native ELF missing. Run: make ps2-native  (or ./setup.sh first)"
     exit 1
 fi
+
+cp "$ROOT/build/asmos.elf" "$OUT/BOOT/ASMOS.ELF"
+echo "Copied PS2 native ELF ($(stat -c%s "$OUT/BOOT/ASMOS.ELF" 2>/dev/null || wc -c < "$OUT/BOOT/ASMOS.ELF") bytes)"
 
 cat > "$OUT/README_FMCB.md" <<'EOF'
 # ASMOS FreeMCBoot Package

@@ -10,7 +10,11 @@ static demo_object_t objects[10];
 static uint32_t object_count = 0;
 static uint32_t demo_running = 0;
 
-#ifdef PS2_HARDWARE
+#if defined(PS2_HARDWARE) && defined(PLATFORM_PS2)
+static void init_graphics_hw(void) {
+    sys_graphics_init();
+}
+#elif defined(PS2_HARDWARE)
 static void init_graphics_hw(void) {
     asm volatile("call sys_graphics_init");
 }

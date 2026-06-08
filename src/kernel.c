@@ -27,10 +27,12 @@ extern void load_kernel_from_disk(void);
 extern uint32_t detect_ps2_memory(void);
 extern void init_ps2_controllers(void);
 
+#ifndef PLATFORM_PS2
 // VGA text buffer starts at 0xB8000
 volatile uint16_t* vga_buffer = (uint16_t*)VGA_ADDRESS;
 int cursor_row = 0;
 int cursor_col = 0;
+#endif
 
 // PS2 system information
 static struct {
@@ -43,30 +45,36 @@ static struct {
 // Enhanced kernel entry point with PS2 optimizations
 void kernel_main(void) {
     plat_init();
-    kprint("PS2 x86 OS Kernel v2.0 - Enhanced Edition\n");  
+    kprint("ASMOS Kernel v2.0 - Enhanced Edition\n");
+#ifndef PLATFORM_PS2
     disable_interrupts_asm();
-    
+#endif
+
     kprint("Detecting PS2 hardware...\n");
     ps2_info.total_memory = detect_ps2_memory();
     ps2_info.ps2_detected = (ps2_info.total_memory >= 32);
-    
+
     if (ps2_info.ps2_detected) {
         kprintf("PS2 detected! Total memory: %u MB\n", ps2_info.total_memory);
         init_ps2_controllers();
     } else {
         kprint("Running in compatibility mode\n");
     }
-    
+
     kprint("Initializing memory manager...\n");
     init_memory_manager();
-    
+
+#ifndef PLATFORM_PS2
     kprint("Loading kernel from disk...\n");
     load_kernel_from_disk();
-    
-    kprint("Initializing scheduler and FAT12 filesystem...\n");
+#endif
+
+    kprint("Initializing scheduler and filesystem...\n");
     init_scheduler();
     plat_fs_init();
+#ifndef PLATFORM_PS2
     init_fat12();
+#endif
     
     kprint("Initializing network...\n");
     plat_net_init();
@@ -88,9 +96,10 @@ void kernel_main(void) {
     kprint("Showing enhanced boot splash...\n");
     show_enhanced_boot_splash(); 
     
-    // Enable interrupts and start system
+#ifndef PLATFORM_PS2
     enable_interrupts_asm();
-    kprint("PS2 x86 OS Kernel v2.0 - Ready!\n");
+#endif
+    kprint("ASMOS Kernel v2.0 - Ready!\n");
     
     start_shell();
     // Catch
@@ -99,17 +108,21 @@ void kernel_main(void) {
 
 // System halt function
 void halt_system(void) {
-    kprint("System halted. Press any key to reboot...\n");
-    // Wait for key press
+    kprint("System halted.\n");
+#ifdef PLATFORM_PS2
+    plat_reboot();
+#else
     asm volatile("int $0x16");
-    // Reboot
     asm volatile("int $0x19");
+#endif
 }
 
 // Get system memory function
 uint32_t get_system_memory(void) {
     return ps2_info.total_memory;
 }
+
+#ifndef PLATFORM_PS2
 
 static void draw_box(int x, int y, int w, int h, uint8_t color) {
     for (int i = x + 1; i < x + w - 1; i++) {
@@ -460,3 +473,5 @@ int ksscanf(const char *str, const char *format, ...) {
     va_end(args);
     return count;
 }
+
+#endif /* !PLATFORM_PS2 */
