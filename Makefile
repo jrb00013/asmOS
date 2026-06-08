@@ -90,7 +90,7 @@ $(OS_IMAGE): $(STAGE1_BIN) $(KERNEL_BIN) $(BOOT_META)
 	$(DD) if=/dev/zero of=$@ bs=512 count=2880 status=none
 	$(MKFS) -F 12 -n PS2OS -i 0x12345678 $@
 	@bash scripts/fat_put.sh $@ $(KERNEL_BIN) "KERNEL  BIN"
-	@bash scripts/fat_put.sh $@ $(BOOT_META) "ASMOS   META"
+	@bash scripts/fat_put.sh $@ $(BOOT_META) "ASMOS   MET"
 	$(DD) if=$(STAGE1_BIN) of=$@ conv=notrunc status=none
 	@if [ -f boot/CONFIG.WF ]; then bash scripts/fat_put.sh $@ boot/CONFIG.WF "CONFIG  WF  "; fi
 	@echo "Disk image: $@ ($(shell stat -c%s $@) bytes)"

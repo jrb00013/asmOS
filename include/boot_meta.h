@@ -22,7 +22,7 @@ typedef struct {
     uint8_t  reserved[460];
 } __attribute__((packed)) asmos_boot_meta_t;
 
-#define ASMOS_META_FILENAME  "ASMOS   META"
+#define ASMOS_META_FILENAME  "ASMOS   MET"
 #define ASMOS_KERNEL_FILENAME "KERNEL  BIN"
 #define ASMOS_CONFIG_FILENAME "CONFIG  WF  "
 
