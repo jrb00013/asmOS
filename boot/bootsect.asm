@@ -8,7 +8,7 @@ nop
 OEMLabel        db 'PS2OS   '
 BytesPerSector  dw 512
 SectorsPerCluster db 1
-ReservedSectors dw 1
+ReservedSectors dw 33
 NumFATs         db 2
 RootEntries     dw 224
 TotalSectors16  dw 2880
