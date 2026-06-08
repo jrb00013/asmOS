@@ -8,10 +8,10 @@ extern void init_fat12(void);
 extern int fat12_read_sector(uint32_t lba, void *buf);
 extern int fat12_write_sector(uint32_t lba, const void *buf);
 
-#define FAT_ROOT_LBA       19
+#define FAT_ROOT_LBA       51
 #define FAT_ROOT_SECTORS   14
 #define FAT_ROOT_ENTRIES   224
-#define FAT_DATA_START     33
+#define FAT_DATA_START     65
 #define FAT_SECTORS        9
 #define FAT_END            0xFF8
 
@@ -41,7 +41,7 @@ static void fat_normalize(const char *src, char *dest83) {
 static int fat_load_tables(void) {
     int s;
     for (s = 0; s < FAT_SECTORS; s++) {
-        if (fat12_read_sector(1 + s, fat_cache + s * 512) != 0)
+        if (fat12_read_sector(33 + s, fat_cache + s * 512) != 0)
             return -1;
     }
     for (s = 0; s < FAT_ROOT_SECTORS; s++) {
