@@ -4,6 +4,7 @@
 #include <sifrpc.h>
 #include <loadfile.h>
 #include <iopcontrol.h>
+#include <debug.h>
 #include "kernel.h"
 
 static int iop_ready;
