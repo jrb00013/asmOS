@@ -88,12 +88,11 @@ $(OS_IMAGE): $(STAGE1_BIN) $(KERNEL_BIN) $(BOOT_META)
 	@mkdir -p $(DISK_DIR)
 	@echo "Creating FAT12 disk image with KERNEL.BIN..."
 	$(DD) if=/dev/zero of=$@ bs=512 count=2880 status=none
-	$(MKFS) -F 12 -n PS2OS -i 0x12345678 $@
-	@bash scripts/fat_put.sh $@ $(KERNEL_BIN) "KERNEL  BIN"
-	@bash scripts/fat_put.sh $@ $(BOOT_META) "ASMOS   MET"
-	$(DD) if=$(STAGE1_BIN) of=$@ conv=notrunc status=none
+	$(DD) if=$(BOOTSECT_BIN) of=$@ conv=notrunc status=none
+	@bash scripts/fat_put.sh $@ $(KERNEL_BIN) "KERNEL  BIN" $(BOOT_META) "ASMOS   MET"
 	@if [ -f boot/CONFIG.WF ]; then bash scripts/fat_put.sh $@ boot/CONFIG.WF "CONFIG  WF  "; fi
-	@echo "Disk image: $@ ($(shell stat -c%s $@) bytes)"
+	$(DD) if=$(LOADER_BIN) of=$@ bs=512 seek=1 conv=notrunc status=none
+	@echo "Disk image: $@ ($$(stat -c%s $@) bytes)"
 
 run: $(OS_IMAGE)
 	$(QEMU) -drive format=raw,file=$< -m 32 -serial stdio
