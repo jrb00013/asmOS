@@ -22,7 +22,6 @@
 // Assembly function prototypes
 extern void enable_interrupts_asm(void);
 extern void disable_interrupts_asm(void);
-extern void load_kernel_from_disk(void);
 
 // PS2-specific hardware detection
 extern uint32_t detect_ps2_memory(void);
@@ -66,17 +65,9 @@ void kernel_main(void) {
     kprint("Initializing memory manager...\n");
     init_memory_manager();
 
-#ifndef PLATFORM_PS2
-    kprint("Loading kernel from disk...\n");
-    load_kernel_from_disk();
-#endif
-
     kprint("Initializing scheduler and filesystem...\n");
     init_scheduler();
     plat_fs_init();
-#ifndef PLATFORM_PS2
-    init_fat12();
-#endif
     
     memory_budget_init();
     kprint("Initializing subsystems...\n");
