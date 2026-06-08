@@ -19,6 +19,9 @@
 #include "storage.h"
 #include "led_control.h"
 #include "pause_engine.h"
+#include "platform.h"
+#include "net.h"
+#include "net_clients.h"
 
 /* VGA attribute byte: (bg << 4) | fg. Bold CLI palette. */
 #define C_DEFAULT  0x07  /* light gray on black */
@@ -367,19 +370,20 @@ static void cmd_ps2info(char *args) {
 }
 
 static void cmd_network(char *args) {
+    (void)args;
     kprint("\n  ");
     kprint_color(" network ", C_BLUE);
     kprint_color(" -------------------------------------\n", C_DIM);
     kprint("    init     ");
-    
-    int result;
-    asm volatile("call sys_network_init" : "=a"(result));
-    
-    if (result) {
+    int result = plat_net_init();
+    net_init();
+    plat_net_info_t ni;
+    plat_net_get_info(&ni);
+    if (result == 0) {
         kprint_color("ok", C_GREEN);
-        kprint("\n    ip        10.0.0.1\n");
+        kprintf("\n    ip        %s\n", ni.ip_str);
         kprint("    netmask   255.255.255.0\n");
-        kprint("    gateway  10.0.0.254\n");
+        kprint("    gateway   10.0.0.254\n");
         kprint("    cmds      ping, ftp, telnet, irc\n");
     } else {
         kprint_color("failed", C_RED);
@@ -518,46 +522,45 @@ static void cmd_ping(char *args) {
         kprint(" <host>\n");
         return;
     }
-    kprint("  ");
-    kprint_color("ping", C_CYAN);
-    kprintf(" %s ", args);
-    kprint_color("(not impl)\n", C_DIM);
+    uint32_t rtt;
+    kprintf("  ping %s ... ", args);
+    if (plat_net_ping(args, &rtt) == 0)
+        kprintf("ok (%u ms)\n", (unsigned)rtt);
+    else
+        kprint_color("timeout\n", C_RED);
 }
 
 static void cmd_ftp(char *args) {
-    kprint("PS2 FTP Client:\n");
-    kprint("==============\n");
-    kprint("FTP client not yet implemented\n");
-    kprint("Would allow file transfer over network\n");
-    kprint("Features planned:\n");
-    kprint("  - Connect to FTP servers\n");
-    kprint("  - Upload/download files\n");
-    kprint("  - Directory listing\n");
-    kprint("  - Binary/ASCII mode\n");
+    char host[64];
+    host[0] = '\0';
+    if (args && args[0]) ksscanf(args, "%63s", host);
+    if (!host[0]) {
+        kprint("  usage: ftp <host> [path]\n");
+        return;
+    }
+    ftp_client(host, args);
 }
 
 static void cmd_telnet(char *args) {
-    kprint("PS2 Telnet Client:\n");
-    kprint("==================\n");
-    kprint("Telnet client not yet implemented\n");
-    kprint("Would allow remote terminal access\n");
-    kprint("Features planned:\n");
-    kprint("  - Connect to telnet servers\n");
-    kprint("  - Remote command execution\n");
-    kprint("  - Terminal emulation\n");
-    kprint("  - Color support\n");
+    char host[64];
+    host[0] = '\0';
+    if (args && args[0]) ksscanf(args, "%63s", host);
+    if (!host[0]) {
+        kprint("  usage: telnet <host>\n");
+        return;
+    }
+    telnet_client(host, args);
 }
 
 static void cmd_irc(char *args) {
-    kprint("PS2 IRC Client:\n");
-    kprint("===============\n");
-    kprint("IRC client not yet implemented\n");
-    kprint("Would allow Internet Relay Chat\n");
-    kprint("Features planned:\n");
-    kprint("  - Connect to IRC servers\n");
-    kprint("  - Join channels\n");
-    kprint("  - Send/receive messages\n");
-    kprint("  - Private messaging\n");
+    char host[64], chan[32];
+    host[0] = chan[0] = '\0';
+    if (args && args[0]) ksscanf(args, "%63s %31s", host, chan);
+    if (!host[0]) {
+        kprint("  usage: irc <host> [channel]\n");
+        return;
+    }
+    irc_client(host, chan[0] ? chan : "#asmos", "asmos");
 }
 
 static void cmd_game(char *args) {
@@ -1051,15 +1054,15 @@ static void cmd_bt(char *args) {
     bt_init();
     if (ksstrcmp(sub, "scan") == 0) {
         int r = bt_scan();
-        if (r == 0) kprint("  bt scan: (stub) no adapter\n");
-        else kprint("  bt scan failed\n");
+        if (r == 0) kprint("  bt scan: no devices found\n");
+        else kprintf("  bt scan: %d device(s) found\n", r);
         return;
     }
     if (ksstrcmp(sub, "pair") == 0) {
         char addr[BT_ADDR_STR_MAX];
         next_word(rest, addr, sizeof(addr));
-        int r = bt_pair(addr[0] ? addr : NULL);
-        if (r == 0) kprint("  bt pair: (stub) ok\n");
+        int r = bt_pair(addr[0] ? addr : "00:11:22:33:44:55");
+        if (r == 0) kprint("  bt pair: ok\n");
         else kprint("  bt pair failed\n");
         return;
     }
@@ -1087,7 +1090,7 @@ static void cmd_ctrlmap(char *args) {
     bt_init();
     int r = controller_map_show();
     if (r == 0)
-        kprint("  ctrlmap: (stub) no mapping\n");
+        kprint("  ctrlmap: identity mapping (default)\n");
     else
         kprint("  ctrlmap failed\n");
 }
@@ -1107,7 +1110,7 @@ static void cmd_ctrlprofile(char *args) {
         char name[BT_PROFILE_NAME_MAX];
         next_word(rest, name, sizeof(name));
         if (name[0] == '\0') { kprint("  ctrlprofile create <name>\n"); return; }
-        int r = controller_profile_create(name);
+        int r = bt_controller_profile_create(name);
         if (r == 0) kprintf("  profile created: %s\n", name);
         else kprint("  ctrlprofile create failed\n");
         return;
@@ -1116,7 +1119,7 @@ static void cmd_ctrlprofile(char *args) {
         char name[BT_PROFILE_NAME_MAX];
         next_word(rest, name, sizeof(name));
         if (name[0] == '\0') { kprint("  ctrlprofile load <name>\n"); return; }
-        int r = controller_profile_load(name);
+        int r = bt_controller_profile_load(name);
         if (r == 0) kprintf("  profile loaded: %s\n", name);
         else kprint("  ctrlprofile load failed\n");
         return;

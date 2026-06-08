@@ -32,10 +32,10 @@ BUILD_DIR = build
 DISK_DIR = disk
 
 # Files
-SRC_C = $(wildcard $(SRC_DIR)/*.c)
+KERNEL_C = $(wildcard $(SRC_DIR)/*.c) $(wildcard platform/x86/*.c) $(wildcard $(SRC_DIR)/net/*.c)
 SRC_ASM = $(filter-out $(BOOT_DIR)/boot.asm, $(wildcard $(BOOT_DIR)/*.asm))
 
-OBJ_C = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRC_C))
+OBJ_C = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C))
 OBJ_ASM = $(patsubst $(BOOT_DIR)/%.asm, $(BUILD_DIR)/%.o, $(SRC_ASM))
 OBJS = $(OBJ_C) $(OBJ_ASM)
 
@@ -44,7 +44,9 @@ KERNEL_ELF = $(BUILD_DIR)/kernel.elf
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 OS_IMAGE = $(DISK_DIR)/os.img
 
-.PHONY: all clean run debug gdb ps2-build ps2-test test test-quick quiet
+.PHONY: all clean run debug gdb ps2-build ps2-test test test-quick quiet test-integration fmcb-package
+
+CFLAGS += -DPLATFORM_X86=1
 
 # Quiet build target (minimal output)
 quiet: CFLAGS += -w
@@ -67,8 +69,8 @@ $(BOOTLOADER_BIN): $(BOOT_DIR)/boot.asm
 	@$(AS) -f bin -I$(BOOT_DIR)/ $< -o $@
 
 # Compile C sources
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
 	@echo "  CC    $<"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -140,6 +142,14 @@ test-deps:
 test-quick:
 	@echo "Running quick build test..."
 	@bash test_build.sh
+
+# Integration tests (build + symbol checks)
+test-integration:
+	@bash tests/integration/run_checks.sh
+
+# Build FreeMCBoot deploy package (requires ps2-native ELF when PS2SDK installed)
+fmcb-package:
+	@bash scripts/build_fmcb_package.sh
 
 # Show build information
 info:

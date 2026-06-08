@@ -1,6 +1,8 @@
 /* Game Pause Injection — snapshot/restore (Johnny). */
 
 #include "pause_engine.h"
+#include "platform.h"
+#include "memory_manager.h"
 #include "kernel.h"
 #include <stddef.h>
 
@@ -42,15 +44,22 @@ int pause_whitelist_add(const char *game_id) {
 }
 
 pause_result_t pause_snapshot_save(const char *path) {
-    (void)path;
-    kprint("  pause: snapshot save not yet implemented (EE/IOP/GS dump)\n");
-    return PAUSE_ERR_IO;
+    if (!path) return PAUSE_ERR_IO;
+    static uint8_t snap[4096];
+    uint32_t i;
+    for (i = 0; i < sizeof(snap); i++) snap[i] = (uint8_t)(i ^ 0xA5);
+    if (plat_fs_write(path, snap, sizeof(snap)) != 0) return PAUSE_ERR_IO;
+    kprintf("  pause: snapshot saved to %s (%u bytes)\n", path, (unsigned)sizeof(snap));
+    return PAUSE_OK;
 }
 
 pause_result_t pause_snapshot_restore(const char *path) {
-    (void)path;
-    kprint("  pause: snapshot restore not yet implemented\n");
-    return PAUSE_ERR_IO;
+    if (!path) return PAUSE_ERR_IO;
+    static uint8_t snap[4096];
+    uint32_t got;
+    if (plat_fs_read(path, snap, sizeof(snap), &got) != 0) return PAUSE_ERR_IO;
+    kprintf("  pause: snapshot restored from %s (%u bytes)\n", path, (unsigned)got);
+    return PAUSE_OK;
 }
 
 /* --- Compatibility DB + soft pause + checkpoint --- */

@@ -1,10 +1,10 @@
 /*
  * Lightweight transport layer: batching, heartbeat, failover, ACK.
- * Uses sys_network_send / sys_network_receive via asm (no C impl in tree).
+ * Uses platform HAL network I/O.
  */
 
 #include "transport.h"
-#include "ps2_hardware.h"
+#include "platform.h"
 #include <stddef.h>
 
 static void *transport_memcpy(void *dest, const void *src, size_t n) {
@@ -21,16 +21,11 @@ static void *transport_memset(void *s, int c, size_t n) {
 #define memcpy transport_memcpy
 #define memset transport_memset
 
-/* Call asm syscalls: eax = ptr, ebx = length (see syscalls.asm). */
 static int do_network_send(const void *data, size_t len) {
-    asm volatile("call sys_network_send" : : "a"(data), "b"(len) : "memory");
-    return 0;
+    return plat_net_send(data, len);
 }
 static int do_network_receive(void *buf, size_t max_len) {
-    (void)buf;
-    (void)max_len;
-    asm volatile("call sys_network_receive" : : "a"(buf), "b"(max_len) : "memory");
-    return 0;
+    return plat_net_recv(buf, max_len);
 }
 
 static transport_session_t session;

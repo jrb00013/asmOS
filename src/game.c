@@ -2,6 +2,7 @@
 #include "game_history.h"
 #include "graphics.h"
 #include "kernel.h"
+#include "platform.h"
 #include "video.h"
 #include "keyboard.h"
 #include <stdint.h>
@@ -101,7 +102,10 @@ void launch_game(int game_index) {
     kprintf("Launching %s...\n", game->name);
 
 #ifndef PS2_HARDWARE
-    video_set_mode_13h();
+    plat_video_mode_13h();
+    graphics_set_palette();
+#else
+    plat_video_mode_13h();
     graphics_set_palette();
 #endif
 
@@ -119,7 +123,9 @@ void launch_game(int game_index) {
     current_game = -1;
 
 #ifndef PS2_HARDWARE
-    video_set_mode_text();
+    plat_video_mode_text();
+#else
+    plat_video_mode_text();
 #endif
     kprintf("%s completed!\n", game->name);
 }
@@ -238,11 +244,6 @@ static void snake_draw(void) {
 }
 
 void snake_run(void) {
-#ifdef PS2_HARDWARE
-    kprint("Snake: Use controller. Game runs in text mode on PS2.\n");
-    for (int i = 0; i < 50; i++) { for (volatile int j = 0; j < 10000; j++); }
-    return;
-#endif
     while (!snake_game_over) {
         uint8_t sc;
         while ((sc = keyboard_get_scancode()) != 0) {
@@ -336,10 +337,6 @@ static void pong_draw(void) {
 }
 
 void pong_run(void) {
-#ifdef PS2_HARDWARE
-    kprint("Pong: Use controller. Stub on PS2.\n");
-    return;
-#endif
     while (!pong_quit) {
         uint8_t sc;
         while ((sc = keyboard_get_scancode()) != 0) {
@@ -466,10 +463,6 @@ static void tetris_draw(void) {
 }
 
 void tetris_run(void) {
-#ifdef PS2_HARDWARE
-    kprint("Tetris: Stub on PS2.\n");
-    return;
-#endif
     while (!tetris_quit) {
         uint8_t sc;
         while ((sc = keyboard_get_scancode()) != 0) {
@@ -620,10 +613,6 @@ static void space_invaders_draw(void) {
 }
 
 void space_invaders_run(void) {
-#ifdef PS2_HARDWARE
-    kprint("Space Invaders: Stub on PS2.\n");
-    return;
-#endif
     while (!si_quit) {
         uint8_t sc;
         while ((sc = keyboard_get_scancode()) != 0) {
@@ -736,10 +725,6 @@ static void racing_draw(void) {
 }
 
 void racing_run(void) {
-#ifdef PS2_HARDWARE
-    kprint("Racing: Stub on PS2.\n");
-    return;
-#endif
     while (!race_quit) {
         uint8_t sc;
         while ((sc = keyboard_get_scancode()) != 0) {

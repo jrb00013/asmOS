@@ -75,8 +75,17 @@ growisofs -dvd-compat -Z /dev/sr0=ps2os.iso
 - `make ps2-build` - PS2-optimized build
 - `make ps2-test` - Test PS2 build in QEMU
 - `make iso` - Create bootable ISO
+- `make test-integration` - Build + symbol/stub checks
+- `make fmcb-package` - Assemble FreeMCBoot deploy folder
 - `make clean` - Clean build artifacts
 - `make info` - Show build information
+
+### v2.0 Architecture
+
+- **Platform HAL** (`include/platform.h`, `platform/x86/`) — shared kernel logic with x86 backend
+- **Network stack** (`src/net/`, `src/net_clients.c`) — UDP transport, ping, FTP/telnet/IRC clients
+- **FAT12 I/O** — read/write/delete via platform storage layer
+- **FreeMCBoot** — `scripts/build_fmcb_package.sh`, `docs/HARDWARE_TESTING.md`
 
 ### PS2-Specific Optimizations
 - **CPU**: Optimized for Pentium III era (PS2 x86 emulation)

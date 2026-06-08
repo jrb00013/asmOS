@@ -5,6 +5,8 @@ section .text
 global load_kernel_from_disk
 global init_fat12
 global fat12_list_files
+global fat12_read_sector
+global fat12_write_sector
 global disable_interrupts_asm
 global enable_interrupts_asm
 global detect_ps2_memory
@@ -474,3 +476,78 @@ get_next_cluster:
 
 ; Memory map buffer for PS2 detection
 memory_map_buffer times 100 db 0
+
+; int fat12_read_sector(uint32_t lba, void *buf) — 0 ok, -1 fail
+fat12_read_sector:
+    push ebp
+    mov ebp, esp
+    pusha
+    mov eax, [ebp + 8]
+    mov ebx, [ebp + 12]
+    mov ecx, 1
+    call read_sectors
+    popa
+    pop ebp
+    xor eax, eax
+    ret
+
+; int fat12_write_sector(uint32_t lba, const void *buf)
+fat12_write_sector:
+    push ebp
+    mov ebp, esp
+    pusha
+    mov eax, [ebp + 8]
+    mov ebx, [ebp + 12]
+    mov ecx, 1
+    call write_sectors
+    popa
+    pop ebp
+    xor eax, eax
+    ret
+
+write_sectors:
+    pusha
+    mov edi, 5
+.ws_retry:
+    push eax
+    push ecx
+    push ebx
+    xor edx, edx
+    div dword [sectors_per_track]
+    inc edx
+    mov cl, dl
+    xor edx, edx
+    div dword [heads_per_cylinder]
+    mov dh, dl
+    mov ch, al
+    mov ah, 0x03
+    mov al, 1
+    pop ebx
+    pop ecx
+    push ecx
+    push ebx
+    mov dl, 0x80
+    int 0x13
+    jnc .ws_success
+    dec edi
+    jz .ws_error
+    xor ah, ah
+    int 0x13
+    pop ebx
+    pop ecx
+    pop eax
+    jmp .ws_retry
+.ws_success:
+    pop ebx
+    pop ecx
+    pop eax
+    add ebx, 512
+    inc eax
+    dec ecx
+    jnz write_sectors
+    popa
+    ret
+.ws_error:
+    popa
+    stc
+    ret

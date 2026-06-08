@@ -1,4 +1,6 @@
 #include "dashboard.h"
+#include "platform.h"
+#include "party.h"
 #include "kernel.h"
 #include "memory_manager.h"
 #include <stddef.h>
@@ -30,7 +32,16 @@ void dashboard_show(void) {
     kprint("  led      (use ");
     kprint_color("led", 0x0B);
     kprint(" command)\n");
-    kprint("  network  (no adapter)\n");
-    kprint("  party    (no party)\n");
+    plat_net_info_t ni;
+    plat_net_get_info(&ni);
+    kprint("  network  ");
+    kprint_color(ni.linked ? ni.ip_str : "down", ni.linked ? 0x0A : 0x08);
+    kprint("\n");
+    kprint("  party    ");
+    if (party_in_room())
+        kprint_color("in room", 0x0A);
+    else
+        kprint_color("idle", 0x08);
+    kprint("\n");
     kprint("  ----------------------------------------\n\n");
 }

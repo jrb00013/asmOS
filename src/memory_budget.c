@@ -143,18 +143,38 @@ void swap_slot_free(swap_slot_t *slot) {
 }
 
 void swap_compress(const void *src, size_t len, void *dst, size_t *out_len) {
-    /* Stub: copy only. Real: LZ77/RLE to fit more in swap file. */
     const unsigned char *s = (const unsigned char *)src;
     unsigned char *d = (unsigned char *)dst;
-    size_t i = 0;
-    while (i < len) { d[i] = s[i]; i++; }
-    *out_len = len;
+    size_t i = 0, o = 0;
+    while (i < len && o + 2 < len) {
+        unsigned char run = s[i];
+        size_t count = 1;
+        while (i + count < len && s[i + count] == run && count < 127) count++;
+        if (count >= 3) {
+            d[o++] = (unsigned char)(0x80 | count);
+            d[o++] = run;
+            i += count;
+        } else {
+            d[o++] = s[i++];
+        }
+    }
+    *out_len = o;
 }
 
 void swap_decompress(const void *src, size_t len, void *dst, size_t *out_len) {
     const unsigned char *s = (const unsigned char *)src;
     unsigned char *d = (unsigned char *)dst;
-    size_t i = 0;
-    while (i < len) { d[i] = s[i]; i++; }
-    *out_len = len;
+    size_t i = 0, o = 0;
+    while (i < len) {
+        if (s[i] & 0x80) {
+            size_t count = s[i] & 0x7F;
+            unsigned char v = s[i + 1];
+            size_t j;
+            for (j = 0; j < count; j++) d[o++] = v;
+            i += 2;
+        } else {
+            d[o++] = s[i++];
+        }
+    }
+    *out_len = o;
 }

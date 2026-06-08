@@ -4,6 +4,8 @@
 #include "scheduler.h"
 #include "fs.h"
 #include "kernel.h"
+#include "platform.h"
+#include "net.h"
 #include "game.h"
 #include "game_history.h"
 #include "music.h"
@@ -40,11 +42,10 @@ static struct {
 
 // Enhanced kernel entry point with PS2 optimizations
 void kernel_main(void) {
-    // Initialize critical components first
+    plat_init();
     kprint("PS2 x86 OS Kernel v2.0 - Enhanced Edition\n");  
     disable_interrupts_asm();
     
-    // Detect PS2 hardware
     kprint("Detecting PS2 hardware...\n");
     ps2_info.total_memory = detect_ps2_memory();
     ps2_info.ps2_detected = (ps2_info.total_memory >= 32);
@@ -62,10 +63,14 @@ void kernel_main(void) {
     kprint("Loading kernel from disk...\n");
     load_kernel_from_disk();
     
-    // Initialize system components
     kprint("Initializing scheduler and FAT12 filesystem...\n");
     init_scheduler();
-    init_fat12();  // Initialize filesystem
+    plat_fs_init();
+    init_fat12();
+    
+    kprint("Initializing network...\n");
+    plat_net_init();
+    net_init();
     
     storage_init();
     pause_engine_init();

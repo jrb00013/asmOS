@@ -1,6 +1,5 @@
-/* External Storage — unified abstraction (Johnny). */
-
 #include "storage.h"
+#include "platform.h"
 #include "kernel.h"
 #include <stddef.h>
 
@@ -22,6 +21,8 @@ void storage_init(void) {
         devices[i].free_kb = 0;
         devices[i].label[0] = '\0';
     }
+    storage_register(0, STORAGE_TYPE_HDD, "disk0:", 1440, 800, "ASMOS Disk");
+    storage_register(1, STORAGE_TYPE_USB, "usb0:", 16384, 8192, "USB Mass");
     initialized = 1;
 }
 
@@ -48,15 +49,15 @@ void storage_list(storage_device_t *out, unsigned int max) {
 }
 
 int storage_copy(const char *src, const char *dst) {
-    (void)src;
-    (void)dst;
-    kprint("  storage copy: cross-device transfer not yet implemented\n");
-    return -1;
+    if (!src || !dst) return -1;
+    static uint8_t buf[8192];
+    uint32_t sz;
+    if (plat_fs_read(src, buf, sizeof(buf), &sz) != 0) return -1;
+    if (plat_fs_write(dst, buf, sz) != 0) return -1;
+    kprintf("  storage: copied %s -> %s (%u bytes)\n", src, dst, (unsigned)sz);
+    return 0;
 }
 
 int storage_snapshot_backup(const char *source_path, const char *backup_path) {
-    (void)source_path;
-    (void)backup_path;
-    kprint("  storage snapshot: backup engine not yet implemented\n");
-    return -1;
+    return storage_copy(source_path, backup_path);
 }

@@ -41,7 +41,7 @@ int controller_map_show(void);
 int controller_map_set(int logical_button, int physical_source);
 
 /* Controller profile: create/save and load. */
-int controller_profile_create(const char *name);
-int controller_profile_load(const char *name);
+int bt_controller_profile_create(const char *name);
+int bt_controller_profile_load(const char *name);
 
 #endif /* BLUETOOTH_H */

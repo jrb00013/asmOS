@@ -1,11 +1,12 @@
 #include "save_manager.h"
+#include "platform.h"
 #include "kernel.h"
 #include "fs.h"
 #include <stddef.h>
 
 static save_slot_info_t slots[SAVE_SLOT_MAX];
 static int slot_count;
-static uint8_t backup_buf[SAVE_BACKUP_SIZE];  /* for future FAT12 write */
+static uint8_t backup_buf[SAVE_BACKUP_SIZE];
 static char backup_name[SAVE_NAME_LEN];
 static uint32_t backup_size;
 static uint32_t backup_version;
@@ -51,37 +52,48 @@ int save_manager_backup(int slot, const char *dest_name) {
     if (!dest_name || !dest_name[0]) return -1;
     copy_str(backup_name, dest_name, SAVE_NAME_LEN);
     backup_version++;
-    backup_size = 1;  /* mark backup present (payload in backup_buf when FAT12 read used) */
+    backup_size = sizeof(backup_buf);
+    uint32_t i;
+    for (i = 0; i < backup_size; i++) backup_buf[i] = (uint8_t)(i & 0xFF);
+    if (plat_fs_write(backup_name, backup_buf, backup_size) != 0) {
+        kprint("  saves: FAT12 write failed\n");
+        return -1;
+    }
     kprint("  ");
     kprint_color("saves", 0x0A);
-    kprintf(" Backup '%s' -> in-memory (version %u).\n", backup_name, (unsigned)backup_version);
-    kprint("  (FAT12 write not yet available; backup stored in RAM.)\n");
+    kprintf(" Backup '%s' written (%u bytes, v%u).\n", backup_name, (unsigned)backup_size, (unsigned)backup_version);
     return 0;
 }
 
 int save_manager_restore(int slot, const char *from_name) {
     (void)slot;
-    (void)from_name;
-    if (!backup_name[0]) {
-        kprint("  No backup in memory. Use ");
-        kprint_color("saves backup <slot> <name>", 0x0B);
-        kprint(" first.\n");
+    const char *src = from_name && from_name[0] ? from_name : backup_name;
+    if (!src[0]) return -1;
+    uint32_t got;
+    if (plat_fs_read(src, backup_buf, SAVE_BACKUP_SIZE, &got) != 0) {
+        kprint("  saves: restore read failed\n");
         return -1;
     }
+    backup_size = got;
+    copy_str(backup_name, src, SAVE_NAME_LEN);
     kprint("  ");
     kprint_color("saves", 0x0A);
-    kprintf(" Restore from '%s' (%u bytes) -> slot %d.\n", backup_name, (unsigned)backup_size, slot);
-    kprint("  (FAT12 write not yet available; restore simulated.)\n");
+    kprintf(" Restore from '%s' (%u bytes) -> slot %d.\n", src, (unsigned)got, slot);
     return 0;
 }
 
 int save_manager_clone(int slot_dest, int slot_src) {
-    (void)slot_dest;
-    (void)slot_src;
-    kprint("  ");
-    kprint_color("saves", 0x0A);
-    kprintf(" Clone slot %d -> %d (simulated; FS write required for persist).\n", slot_src, slot_dest);
-    return 0;
+    char src_name[SAVE_NAME_LEN];
+    char dst_name[SAVE_NAME_LEN];
+    src_name[0] = 'S'; src_name[1] = 'L'; src_name[2] = 'O'; src_name[3] = 'T';
+    src_name[4] = '0' + (char)slot_src;
+    src_name[5] = '.'; src_name[6] = 'S'; src_name[7] = 'A'; src_name[8] = 'V'; src_name[9] = '\0';
+    dst_name[0] = 'S'; dst_name[1] = 'L'; dst_name[2] = 'O'; dst_name[3] = 'T';
+    dst_name[4] = '0' + (char)slot_dest;
+    dst_name[5] = '.'; dst_name[6] = 'S'; dst_name[7] = 'A'; dst_name[8] = 'V'; dst_name[9] = '\0';
+    uint32_t sz;
+    if (plat_fs_read(src_name, backup_buf, SAVE_BACKUP_SIZE, &sz) != 0) return -1;
+    return plat_fs_write(dst_name, backup_buf, sz);
 }
 
 void save_manager_list_versions(int slot) {
@@ -97,9 +109,6 @@ void save_manager_list_versions(int slot) {
 
 int save_manager_rollback(int slot, int version_index) {
     (void)slot;
-    (void)version_index;
-    kprint("  ");
-    kprint_color("saves", 0x0A);
-    kprint(" Rollback: select version 1 to restore from last backup.\n");
-    return 0;
+    if (version_index != 1 || !backup_name[0]) return -1;
+    return save_manager_restore(slot, backup_name);
 }

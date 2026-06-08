@@ -2,6 +2,7 @@
  * Plus gameplay streaming: framebuffer capture -> transport. */
 
 #include "streaming.h"
+#include "platform.h"
 #include "kernel.h"
 #include "memory_manager.h"
 #include "transport.h"
@@ -43,11 +44,22 @@ void stream_close(stream_pipeline_t *s) {
 }
 
 static int advance_chunk(stream_pipeline_t *s, stream_request_t *req) {
-    /* Stub: no real I/O. Real impl would read/write STREAMING_CHUNK_SIZE from s->path at req->offset. */
     if (req->length <= STREAMING_CHUNK_SIZE) {
+        if (s->for_write && req->buffer) {
+            plat_fs_write(s->path, req->buffer, req->length);
+        } else if (!s->for_write && req->buffer) {
+            uint32_t got;
+            plat_fs_read(s->path, req->buffer, req->length, &got);
+        }
         req->done = 1;
         req->error = 0;
         return 0;
+    }
+    if (s->for_write && req->buffer) {
+        plat_fs_write(s->path, req->buffer, STREAMING_CHUNK_SIZE);
+    } else if (!s->for_write && req->buffer) {
+        uint32_t got;
+        plat_fs_read(s->path, req->buffer, STREAMING_CHUNK_SIZE, &got);
     }
     req->offset += STREAMING_CHUNK_SIZE;
     req->length -= STREAMING_CHUNK_SIZE;

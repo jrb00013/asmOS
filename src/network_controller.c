@@ -1,6 +1,5 @@
-/* Virtual controller over network — cross-controller without BT. */
-
 #include "network_controller.h"
+#include "net.h"
 #include "kernel.h"
 #include <stddef.h>
 
@@ -9,7 +8,6 @@ static uint16_t last_buttons = 0;
 static int8_t last_lx = 0, last_ly = 0, last_rx = 0, last_ry = 0;
 
 int network_controller_start(void) {
-    /* Real: bind UDP socket to NETCTRL_PORT, spawn task or poll in loop. */
     running = 1;
     return 0;
 }
@@ -28,6 +26,17 @@ void network_controller_get_state(uint16_t *buttons, int8_t *lx, int8_t *ly, int
 
 int network_controller_poll(void) {
     if (!running) return 0;
-    /* Real: recvfrom(); parse NETCTRL_MAGIC packet; update last_*. */
-    return 0;
+    uint8_t buf[64];
+    uint32_t sip;
+    uint16_t sport;
+    int n = net_udp_recv(&sip, &sport, buf, sizeof(buf));
+    if (n < (int)sizeof(network_controller_packet_t)) return 0;
+    network_controller_packet_t *p = (network_controller_packet_t *)buf;
+    if (p->magic != NETCTRL_MAGIC) return 0;
+    last_buttons = p->buttons;
+    last_lx = p->lx;
+    last_ly = p->ly;
+    last_rx = p->rx;
+    last_ry = p->ry;
+    return 1;
 }

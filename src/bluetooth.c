@@ -4,6 +4,7 @@
  */
 
 #include "bluetooth.h"
+#include "bt_dongle.h"
 #include "kernel.h"
 #include <stddef.h>
 
@@ -48,6 +49,7 @@ int bt_init(void) {
 int bt_scan(void) {
     if (!bt_initialized)
         return -1;
+    bt_dongle_init();
     return 0;
 }
 
@@ -114,7 +116,7 @@ int controller_map_set(int logical_button, int physical_source) {
     return 0;
 }
 
-int controller_profile_create(const char *name) {
+int bt_controller_profile_create(const char *name) {
     if (!bt_initialized || !name)
         return -1;
     if (profile_count >= BT_PROFILE_SLOTS)
@@ -129,7 +131,7 @@ int controller_profile_create(const char *name) {
     return 0;
 }
 
-int controller_profile_load(const char *name) {
+int bt_controller_profile_load(const char *name) {
     if (!bt_initialized || !name)
         return -1;
     for (int i = 0; i < profile_count; i++) {
