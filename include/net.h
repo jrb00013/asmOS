@@ -18,6 +18,7 @@ void net_shutdown(void);
 int net_udp_send(uint32_t dst_ip, uint16_t dst_port, const void *data, uint16_t len);
 int net_udp_recv(uint32_t *src_ip, uint16_t *src_port, void *buf, uint16_t max_len);
 int net_ping(const char *host, uint32_t *rtt_ms);
+int net_icmp_ping(uint32_t dst_ip, uint32_t *rtt_ms);
 int net_parse_ip(const char *str, uint32_t *out);
 void net_ip_to_str(uint32_t ip, char *buf, int max);
 
