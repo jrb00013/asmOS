@@ -2,10 +2,11 @@
 [BITS 16]
 [ORG 0x7E00]
 
-%define FAT_DATA 33
-%define FAT_ROOT 19
-%define FAT_START 1
-
+%define FAT_DATA 65
+%define FAT_ROOT 51
+%define FAT_START 33
+%define FAT_SEG 0x1000
+%define ROOT_SEG 0x1100
 %define BPB_DRIVE 0x7C24
 
 loader_entry:
@@ -21,19 +22,22 @@ kernel_name db 'KERNEL  BIN'
 
 fatload_kernel:
     pusha
-    mov ax, 0x1000
+    mov ax, FAT_SEG
     mov es, ax
     xor bx, bx
     mov eax, FAT_START
     mov ecx, 9
     call read_lba
-    mov ax, 0x1100
+    mov ax, ROOT_SEG
     mov es, ax
     xor bx, bx
     mov eax, FAT_ROOT
     mov ecx, 14
     call read_lba
-    mov di, 0x1100
+
+    mov ax, ROOT_SEG
+    mov ds, ax
+    xor di, di
     mov cx, 224
 .find:
     push cx
@@ -50,46 +54,42 @@ fatload_kernel:
 .got:
     mov ax, [di + 26]
     mov [cluster], ax
+
     mov ax, 0xFFFF
     mov es, ax
     mov bx, 0x0010
-    mov ax, [cluster]
+
+    mov ax, FAT_SEG
+    mov ds, ax
+
 .cloop:
+    mov ax, [cluster]
     cmp ax, 0xFF8
     jae .done
-    push ax
+
     mov si, ax
-    shr si, 1
-    add si, ax
-    mov si, [0x1000 + si]
-    test ax, 1
-    jz .ev
-    shr si, 4
-    jmp .rd
-.ev:
-    and si, 0x0FFF
-.rd:
-    pop ax
-    push ax
-    mov eax, FAT_DATA
-    movzx esi, si
-    sub esi, 2
-    add eax, esi
-    mov ecx, 1
+    mov cx, si
+    dec cx
+    dec cx
+    mov ax, FAT_DATA
+    add ax, cx
+    movzx eax, ax
     call read_es
+
     add bx, 512
     jnc .nc
+    push ax
     mov ax, es
     add ax, 0x1000
     mov es, ax
+    pop ax
 .nc:
-    push ax
-    mov bx, ax
-    shr bx, 1
-    add bx, ax
-    mov ax, [0x1000 + bx]
-    pop bx
-    test bx, 1
+    mov ax, [cluster]
+    mov si, ax
+    shr si, 1
+    add si, ax
+    mov ax, [si]
+    test word [cluster], 1
     jz .nx
     shr ax, 4
     jmp .st
@@ -97,17 +97,17 @@ fatload_kernel:
     and ax, 0x0FFF
 .st:
     mov [cluster], ax
-    mov ax, [cluster]
     jmp .cloop
 .done:
+    xor ax, ax
+    mov ds, ax
     popa
     ret
 
 read_lba:
+.read_loop:
     push eax
-.rl:
-    push eax
-    push cx
+    push ecx
     push bx
     call lba_chs
     mov ah, 0x02
@@ -117,14 +117,14 @@ read_lba:
     jc disk_err
     pop bx
     add bx, 512
-    pop cx
+    pop ecx
     pop eax
     inc eax
-    loop .rl
-    pop eax
+    loop .read_loop
     ret
 
 read_es:
+    ; eax = LBA, es:bx = buffer
     push eax
     call lba_chs
     mov ah, 0x02
@@ -136,16 +136,19 @@ read_es:
     ret
 
 lba_chs:
-    xor dx, dx
-    mov di, 18
-    div di
+    ; eax = LBA in, cl/dh/ch out; preserves bx
+    push bx
+    xor edx, edx
+    mov bx, 18
+    div bx
     inc dx
     mov cl, dl
-    xor dx, dx
-    mov di, 2
-    div di
+    xor edx, edx
+    mov bx, 2
+    div bx
     mov dh, dl
     mov ch, al
+    pop bx
     ret
 
 align 8
