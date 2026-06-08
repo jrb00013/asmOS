@@ -11,7 +11,7 @@ extern int fat12_write_sector(uint32_t lba, const void *buf);
 #define FAT_ROOT_LBA       19
 #define FAT_ROOT_SECTORS   14
 #define FAT_ROOT_ENTRIES   224
-#define FAT_DATA_START     31
+#define FAT_DATA_START     33
 #define FAT_SECTORS        9
 #define FAT_END            0xFF8
 
