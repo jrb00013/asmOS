@@ -10,9 +10,9 @@ endif
 EE_BIN = $(ROOT)/build/asmos.elf
 EE_OBJS_DIR = $(ROOT)/build/ps2/
 
-SHARED_SRC := $(wildcard $(ROOT)/src/*.c)
+SHARED_SRC := $(wildcard $(ROOT)/src/*.c) $(wildcard $(ROOT)/src/subsys/*.c) $(wildcard $(ROOT)/src/quantum/*.c)
 SHARED_SRC := $(filter-out $(ROOT)/src/vga.c $(ROOT)/src/keyboard.c,$(SHARED_SRC))
-PS2_SRC := main.c kernel_console.c stubs.c io_syscalls.c \
+PS2_SRC := main.c kernel_console.c stubs.c io_syscalls.c iop_init.c \
            hal_system.c hal_input.c hal_storage.c hal_net.c hal_video.c
 
 EE_CFLAGS += -DPLATFORM_PS2=1 -DPS2_HARDWARE=1 -I$(ROOT)/include
