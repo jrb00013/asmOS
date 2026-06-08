@@ -15,6 +15,7 @@
 #include "storage.h"
 #include "pause_engine.h"
 #include "memory_budget.h"
+#include "subsys.h"
 #include <stdarg.h>
 #include <stdint.h>
 
@@ -45,7 +46,8 @@ static struct {
 // Enhanced kernel entry point with PS2 optimizations
 void kernel_main(void) {
     plat_init();
-    kprint("ASMOS Kernel v2.0 - Enhanced Edition\n");
+    subsys_register_all();
+    kprint("ASMOS Kernel v3.0 - Physical Console Edition\n");
 #ifndef PLATFORM_PS2
     disable_interrupts_asm();
 #endif
@@ -76,13 +78,13 @@ void kernel_main(void) {
     init_fat12();
 #endif
     
-    kprint("Initializing network...\n");
-    plat_net_init();
+    memory_budget_init();
+    kprint("Initializing subsystems...\n");
+    subsys_init_all();
     net_init();
     
     storage_init();
     pause_engine_init();
-    memory_budget_init();
     kprint("Initializing enhanced shell...\n");
     init_shell();
     kprint("Initializing game system...\n");
