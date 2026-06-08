@@ -1,5 +1,5 @@
 #!/bin/bash
-# Integration checks: build + verify v2.0 symbols and no stub strings in shell.
+# Integration checks: build + FAT chain + symbols + optional QEMU boot.
 set -e
 cd "$(dirname "$0")/../.."
 
@@ -8,7 +8,9 @@ echo "=== ASMOS integration checks ==="
 make clean >/dev/null 2>&1 || true
 make all
 
-for sym in fat12_read_file plat_fs_write plat_net_init net_init; do
+bash tests/integration/check_fat_chain.sh
+
+for sym in _kernel_start fat12_read_file plat_fs_write plat_net_init net_init subsys_init_all; do
     if ! nm build/kernel.elf 2>/dev/null | grep -q " $sym"; then
         echo "FAIL: missing symbol $sym"
         exit 1
@@ -21,5 +23,7 @@ if grep -q "not yet implemented" src/shell.c; then
     exit 1
 fi
 echo "PASS: no shell stub messages"
+
+bash tests/integration/boot_qemu.sh
 
 echo "=== All integration checks passed ==="
