@@ -25,6 +25,8 @@
 #include "platform.h"
 #include "net.h"
 #include "net_clients.h"
+#include "subsys.h"
+#include "quantum.h"
 
 /* VGA attribute byte: (bg << 4) | fg. Bold CLI palette. */
 #define C_DEFAULT  0x07  /* light gray on black */
@@ -63,6 +65,11 @@ static void cmd_graphics(char *args);
 static void cmd_timer(char *args);
 static void cmd_controller(char *args);
 static void cmd_ping(char *args);
+static void cmd_observe(char *args);
+static void cmd_collapse(char *args);
+static void cmd_entangle(char *args);
+static void cmd_coherence(char *args);
+static void cmd_superpose(char *args);
 static void cmd_ftp(char *args);
 static void cmd_telnet(char *args);
 static void cmd_irc(char *args);
@@ -106,6 +113,11 @@ static shell_command_t commands[] = {
     {"timer", cmd_timer, "Timer operations"},
     {"controller", cmd_controller, "PS2 controller operations"},
     {"ping", cmd_ping, "Network ping"},
+    {"observe", cmd_observe, "Observe subsystem into RAM"},
+    {"collapse", cmd_collapse, "Collapse config profile"},
+    {"superpose", cmd_superpose, "Superpose two profiles"},
+    {"entangle", cmd_entangle, "Entangle controller ports"},
+    {"coherence", cmd_coherence, "Show coherence status"},
     {"ftp", cmd_ftp, "FTP client"},
     {"telnet", cmd_telnet, "Telnet client"},
     {"irc", cmd_irc, "IRC client"},
@@ -180,8 +192,7 @@ void start_shell(void) {
     char args[448];
     
     while (1) {
-        transport_tick();
-        party_poll();
+        subsys_tick_all();
         print_prompt();
         sys_read_line(input, sizeof(input));
         
@@ -522,6 +533,39 @@ static void cmd_controller(char *args) {
     controller_remap_print_current();
     kprint("  controller profile list|save|load|apply <name>\n");
     kprint("  controller sensitivity|deadzone <0-255>  turbo on|off|<hex>\n");
+}
+
+static void cmd_observe(char *args) {
+    if (!args || !args[0]) { kprint("  usage: observe <subsys>\n"); return; }
+    quantum_observe(args);
+}
+
+static void cmd_collapse(char *args) {
+    if (!args || !args[0]) { kprint("  usage: collapse <profile>\n"); return; }
+    if (quantum_collapse(args) != 0) kprint_color("  collapse failed\n", C_RED);
+}
+
+static void cmd_superpose(char *args) {
+    char a[24], b[24];
+    a[0] = b[0] = '\0';
+    if (args) ksscanf(args, "%23s %23s", a, b);
+    if (!a[0] || !b[0]) { kprint("  usage: superpose <a> <b>\n"); return; }
+    quantum_superpose(a, b, 128);
+}
+
+static void cmd_entangle(char *args) {
+    int pa = 0, pb = 1;
+    if (args) ksscanf(args, "%d %d", &pa, &pb);
+    quantum_entangle_input(pa, pb);
+}
+
+static void cmd_coherence(char *args) {
+    char buf[96];
+    (void)args;
+    quantum_status(buf, sizeof(buf));
+    kprintf("  coherence: %s\n", buf);
+    subsys_status_all(buf, sizeof(buf));
+    kprintf("  subsys: %s\n", buf);
 }
 
 static void cmd_ping(char *args) {
