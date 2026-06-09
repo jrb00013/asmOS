@@ -3,9 +3,7 @@
 
 #include <stdint.h>
 
-void debugcon_putc(char c) {
-    __asm__ volatile ("outb %0, $0xE9" : : "a"(c));
-}
+extern void debugcon_putc(char c);
 
 void debugcon_puts(const char *s) {
     if (!s) return;
