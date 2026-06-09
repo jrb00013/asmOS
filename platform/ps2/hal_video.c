@@ -1,11 +1,12 @@
 #include "platform.h"
 #include "video.h"
 #include <graph.h>
+#include <graph_vram.h>
 #include <draw.h>
-#include <dma_tags.h>
-#include <gif_tags.h>
 #include <gs_psm.h>
+#include <debug.h>
 #include <kernel.h>
+#include <stdint.h>
 
 static int gfx_inited;
 static u32 frame_addr;
@@ -18,15 +19,11 @@ void plat_video_mode_text(void) {
 
 void plat_video_mode_13h(void) {
     if (gfx_inited) return;
-    frame_addr = GRAPH_ADDR;
     fb_width = 320;
     fb_height = 256;
-    graph_set_mode(GS_MODE_NTSC, GS_MODE_INTERLACED, GS_MODE_FIELD);
-    graph_set_screen(0, 0, 320, 256);
-    graph_set_bgcolor(0, 0, 0);
-    graph_set_framebuffer_filtered(frame_addr, fb_width, PSMT_RGBA32, 0, 0);
+    frame_addr = (u32)graph_vram_allocate(fb_width, fb_height, GS_PSM_32, GRAPH_ALIGN_PAGE);
+    graph_initialize((int)frame_addr, fb_width, fb_height, GS_PSM_32, 0, 0);
     graph_enable_output();
-    dma_channel_wait(DMA_CHANNEL_GIF, 0);
     gfx_inited = 1;
 }
 

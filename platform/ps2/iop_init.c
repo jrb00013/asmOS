@@ -5,15 +5,12 @@
 #include <loadfile.h>
 #include <iopcontrol.h>
 #include <debug.h>
-#include "kernel.h"
 
 static int iop_ready;
 
 int ps2_iop_init(void) {
     if (iop_ready) return 0;
-    SifInitRpc(0);
-    while (!SifIopReset("", 0)) { };
-    while (!SifIopSync()) { };
+    /* SifInitRpc called from main before this. */
     int r;
     r = SifLoadModule("host:irx/smap_irx.irx", 0, NULL);
     if (r < 0) scr_printf("iop: smap load %d\n", r);

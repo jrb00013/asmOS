@@ -1,6 +1,8 @@
 #include "platform.h"
 #include "memory_manager.h"
 #include <kernel.h>
+#include <delaythread.h>
+#include <debug.h>
 #include <timer.h>
 #include <stdint.h>
 

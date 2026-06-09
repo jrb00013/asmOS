@@ -26,13 +26,14 @@ int plat_net_init(void) {
         return net_init();
     }
     NetManInit();
-    ps2ipInit();
-    ps2ipConfig_t cfg;
-    memset(&cfg, 0, sizeof(cfg));
-    IP4_ADDR(&cfg.ipaddr, 10, 0, 0, 2);
-    IP4_ADDR(&cfg.netmask, 255, 255, 255, 0);
-    IP4_ADDR(&cfg.gw, 10, 0, 0, 1);
-    ps2ipSetConfig(&cfg);
+    struct ip4_addr ipaddr, netmask, gw;
+    IP4_ADDR(&ipaddr, 10, 0, 0, 2);
+    IP4_ADDR(&netmask, 255, 255, 255, 0);
+    IP4_ADDR(&gw, 10, 0, 0, 1);
+    if (ps2ipInit(&ipaddr, &netmask, &gw) != 0) {
+        net_ready = 0;
+        return net_init();
+    }
     net_ready = 1;
     return net_init();
 }

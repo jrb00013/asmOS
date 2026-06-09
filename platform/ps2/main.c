@@ -7,10 +7,10 @@
 #include <sifrpc.h>
 #include <iopcontrol.h>
 #include <debug.h>
-#include <fileio.h>
-#include <pad.h>
+#include <libpad.h>
 
 extern void kernel_main(void);
+extern int ps2_iop_init(void);
 
 int main(int argc, char *argv[]) {
     (void)argc;
@@ -20,8 +20,7 @@ int main(int argc, char *argv[]) {
     init_scr();
     scr_printf("\nASMOS PS2 Native Boot\n");
 
-    if (fioInit() < 0)
-        scr_printf("Warning: fioInit failed\n");
+    ps2_iop_init();
 
     if (padInit(0) != 1)
         scr_printf("Warning: padInit failed\n");

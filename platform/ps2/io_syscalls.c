@@ -5,7 +5,7 @@
 #include "syscalls.h"
 #include "platform.h"
 #include <kernel.h>
-#include <fileio.h>
+#include <debug.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,8 +13,8 @@ int sys_read_line(char *buf, int max_len) {
     if (!buf || max_len <= 0) return 0;
     int i = 0;
     while (i < max_len - 1) {
-        int c = fioGetch();
-        if (c < 0) {
+        int c = getchar();
+        if (c == EOF) {
             plat_delay_ms(10);
             continue;
         }
@@ -57,5 +57,11 @@ void sys_sound_init(void) { }
 void sys_graphics_init(void) { }
 void sys_timer_init(void) { }
 uint32_t sys_timer_get(void) { return plat_ticks_ms(); }
+
+void sys_exit(int status) {
+    (void)status;
+    scr_printf("ASMOS exit.\n");
+    SleepThread();
+}
 
 #endif /* PLATFORM_PS2 */

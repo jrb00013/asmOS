@@ -3,7 +3,7 @@
 #ifdef PLATFORM_PS2
 
 #include "platform.h"
-#include "kernel.h"
+#include "../../include/kernel.h"
 #include "fs.h"
 #include <stdint.h>
 

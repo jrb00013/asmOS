@@ -1,5 +1,5 @@
 #include "platform.h"
-#include <pad.h>
+#include <libpad.h>
 #include <stdint.h>
 
 static int pad_ready;
@@ -19,7 +19,7 @@ int plat_controller_read(int port, plat_controller_state_t *out) {
         out->present = 0;
         return -1;
     }
-    padButtonStatus buttons;
+    struct padButtonStatus buttons;
     if (padRead(0, port, &buttons) != 0) {
         out->present = 0;
         return -1;

@@ -2,7 +2,7 @@
 
 #ifdef PLATFORM_PS2
 
-#include "kernel.h"
+#include "../../include/kernel.h"
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -40,10 +40,6 @@ void kprint_color(const char *str, uint8_t color) {
 
 void clear_screen(void) {
     scr_clear();
-}
-
-void putchar(char c) {
-    scr_printf("%c", c);
 }
 
 void print_decimal(int value) {

@@ -34,7 +34,7 @@ build_docker() {
         -e PS2DEV=/usr/local/ps2dev \
         -e PS2SDK=/usr/local/ps2dev/ps2sdk \
         "$DOCKER_IMAGE" \
-        sh -lc 'export PATH=$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2SDK/bin:$PATH && make -C platform/ps2 clean && make -C platform/ps2'
+        sh -c 'apk add --no-cache make >/dev/null 2>&1 || true; export PATH=$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2SDK/bin:$PATH && make -C platform/ps2 clean && make -C platform/ps2'
 }
 
 pick_backend() {
