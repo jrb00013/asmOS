@@ -22,6 +22,8 @@ global sys_ps2_controller_write
 
 section .text
 
+%ifndef PLATFORM_X86
+
 ; ============================
 ; Enhanced Network Functions
 ; ============================
@@ -247,6 +249,60 @@ sys_ps2_controller_write:
     
     pop ebx
     ret
+
+%else
+
+; x86 QEMU path — PS2 MMIO addresses are not valid here
+sys_network_init:
+    xor eax, eax
+    ret
+
+sys_network_send:
+    ret
+
+sys_network_receive:
+    ret
+
+sys_sound_init:
+    ret
+
+sys_sound_play:
+    ret
+
+sys_graphics_init:
+    ret
+
+sys_graphics_draw:
+    ret
+
+sys_timer_init:
+    ret
+
+sys_timer_get:
+    xor eax, eax
+    ret
+
+sys_ps2_controller_read:
+    push edx
+    mov dx, 0x64
+    in al, dx
+    test al, 1
+    jz .no_key
+    mov dx, 0x60
+    in al, dx
+    movzx eax, al
+    or eax, 1
+    pop edx
+    ret
+.no_key:
+    xor eax, eax
+    pop edx
+    ret
+
+sys_ps2_controller_write:
+    ret
+
+%endif
 
 ; ============================
 ; Enhanced System Functions
