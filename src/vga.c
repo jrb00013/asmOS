@@ -3,18 +3,9 @@
  * Used only when not building for PS2 (no PS2_HARDWARE).
  */
 #include "video.h"
+#include "arch_x86.h"
 
 #ifndef PS2_HARDWARE
-
-static void outb(uint16_t port, uint8_t value) {
-    __asm__ volatile ("outb %0, %1" : : "a"(value), "Nd"(port));
-}
-
-static uint8_t inb(uint16_t port) {
-    uint8_t ret;
-    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
-    return ret;
-}
 
 /* Write to indexed VGA register: port = index, port+1 = data */
 static void vga_write_indexed(uint16_t port, uint8_t index, uint8_t value) {
