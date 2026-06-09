@@ -2,6 +2,7 @@
 
 #include "platform.h"
 #include "net.h"
+#include "arch_x86.h"
 #include <stdint.h>
 
 #define NE2000_IO       0x300
@@ -11,23 +12,6 @@ static int net_ready;
 static uint32_t our_ip;
 static uint32_t our_mask;
 static uint8_t our_mac[6] = { 0x52, 0x54, 0x00, 0x12, 0x34, 0x56 };
-
-static inline void outb(uint16_t p, uint8_t v) {
-    __asm__ volatile ("outb %0, %1" : : "a"(v), "Nd"(p));
-}
-static inline uint8_t inb(uint16_t p) {
-    uint8_t r;
-    __asm__ volatile ("inb %1, %0" : "=a"(r) : "Nd"(p));
-    return r;
-}
-static inline void outw(uint16_t p, uint16_t v) {
-    __asm__ volatile ("outw %0, %1" : : "a"(v), "Nd"(p));
-}
-static inline uint16_t inw(uint16_t p) {
-    uint16_t r;
-    __asm__ volatile ("inw %1, %0" : "=a"(r) : "Nd"(p));
-    return r;
-}
 
 static void ne_write(uint8_t reg, uint8_t val) {
     outb(NE2000_IO, reg);
