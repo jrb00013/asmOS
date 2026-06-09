@@ -1,5 +1,6 @@
 ; Cooperative task context switch (x86 only).
 [BITS 32]
+section .note.GNU-stack noalloc noexec nowrite progbits
 section .text
 
 global task_yield_asm

@@ -1,5 +1,6 @@
 ; QEMU isa-debugcon (port 0xE9) — 32-bit kernel.
 [BITS 32]
+section .note.GNU-stack noalloc noexec nowrite progbits
 section .text
 
 global debugcon_putc

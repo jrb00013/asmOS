@@ -1,5 +1,6 @@
 ; x86 port I/O primitives shared by kernel C code.
 [BITS 32]
+section .note.GNU-stack noalloc noexec nowrite progbits
 section .text
 
 global inb
