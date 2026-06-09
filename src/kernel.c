@@ -18,14 +18,7 @@
 #include "subsys.h"
 #include <stdarg.h>
 #include <stdint.h>
-
-// Assembly function prototypes
-extern void enable_interrupts_asm(void);
-extern void disable_interrupts_asm(void);
-
-// PS2-specific hardware detection
-extern uint32_t detect_ps2_memory(void);
-extern void init_ps2_controllers(void);
+#include "arch_x86.h"
 
 #ifndef PLATFORM_PS2
 // VGA text buffer starts at 0xB8000

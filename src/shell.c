@@ -360,7 +360,7 @@ static void cmd_meminfo(char *args) {
     kprint("    total     ");
     kprintf("%u KB (%u MB)\n", mem_kb, mem_kb / 1024);
     kprint("    free      ");
-    kprintf("%u KB\n", mem_kb - 1024);
+    kprintf("%u KB\n", plat_mem_free_kb());
     kprint("    type      ");
     kprint_color("DDR SDRAM", C_CYAN);
     kprint(" @ 150MHz, 2.4 GB/s\n");

@@ -3,6 +3,7 @@
 #include "platform.h"
 #include "memory_manager.h"
 #include "kernel.h"
+#include "syscalls.h"
 #include <stdint.h>
 
 extern uint32_t detect_ps2_memory(void);
@@ -11,6 +12,7 @@ static uint32_t tick_ms;
 
 void plat_init(void) {
     tick_ms = 0;
+    sys_timer_init();
 }
 
 const char *plat_model_string(void) {
@@ -40,7 +42,7 @@ uint32_t plat_mem_free_kb(void) {
 }
 
 uint32_t plat_ticks_ms(void) {
-    return tick_ms;
+    return sys_timer_get();
 }
 
 extern void cpu_pause(void);
