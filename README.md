@@ -84,11 +84,13 @@ growisofs -dvd-compat -Z /dev/sr0=ps2os.iso
 
 ### v3.0 Architecture
 
-- **NASM boot** (`boot/stage1.asm`, `fatload16.asm`, `pm.asm`) — real-mode FAT12 load, protected-mode handoff
-- **NASM kernel glue** (`boot/arch_x86/`, `boot/syscalls.asm`, `boot/fat12.asm`) — port I/O, context switch, syscalls
+- **NASM boot** (`boot/stage1.asm`, `fatload16.asm`) — real-mode FAT12 kernel load, E801 RAM probe → `0x500`, PM jump to `0x100000`
+- **NASM kernel glue** (`boot/arch_x86/`) — ATA disk I/O, keyboard/VGA text, timer, speaker, syscalls (`syscalls_x86.asm`), context switch
+- **FAT12 chain** — `disk_read_sector` → `fat12_read_sector` → `plat_fs_*` → shell `ls` / `fat12_list_files`
 - **C kernel** (`src/`, `platform/x86/`) — shell, scheduler policy, memory, net, subsystems
 - **Platform HAL** (`include/platform.h`, `platform/x86/`, `platform/ps2/`) — shared logic, target-specific backends
-- **Note:** `boot/stage2.c` is an alternate C FAT loader path; the live x86 CD/QEMU boot uses NASM stage1 only
+- **QEMU** — `make run` attaches `disk/os.img` as IDE (`if=ide`); protected-mode ATA PIO matches `disk_io.asm`
+- **Note:** `boot/stage2.c` is an alternate C FAT loader; live x86 boot uses NASM stage1 only
 - **Network stack** (`src/net/`, `src/net_clients.c`) — UDP transport, ping, FTP/telnet/IRC clients
 - **FAT12 I/O** — read/write/delete via platform storage layer
 - **FreeMCBoot** — `scripts/build_fmcb_package.sh`, `docs/HARDWARE_TESTING.md`
