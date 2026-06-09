@@ -8,12 +8,17 @@
 %define FAT_SEG 0x1000
 %define ROOT_SEG 0x1100
 %define BPB_DRIVE 0x7C24
+%include "debugcon.asm"
 
 loader_entry:
     mov dl, [BPB_DRIVE]
     mov si, boot_msg
     call print_string
+    mov si, dbg_loader
+    call debug_puts
     call fatload_kernel
+    mov si, dbg_loaded
+    call debug_puts
     mov si, ok_msg
     call print_string
     call switch_to_pm
@@ -201,4 +206,6 @@ print_string:
 boot_msg db 'ASMOS loader', 13, 10, 0
 ok_msg db 'PM...', 13, 10, 0
 err_msg db 'ERR', 13, 10, 0
+dbg_loader db 'DEBUG:LOADER_START', 10, 0
+dbg_loaded db 'DEBUG:KERNEL_LOADED', 10, 0
 cluster dw 0

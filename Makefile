@@ -50,9 +50,9 @@ $(BOOTSECT_BIN): $(BOOT_DIR)/bootsect.asm
 	@echo "  AS    bootsect"
 	@$(AS) -f bin $< -o $@
 
-$(LOADER_BIN): $(BOOT_DIR)/loader.asm
+$(LOADER_BIN): $(BOOT_DIR)/loader.asm $(BOOT_DIR)/debugcon.asm
 	@echo "  AS    loader"
-	@$(AS) -f bin $< -o $@
+	@$(AS) -f bin -I$(BOOT_DIR) $< -o $@
 
 $(STAGE1_BIN): $(BOOTSECT_BIN) $(LOADER_BIN)
 	@cp $(BOOTSECT_BIN) $@
@@ -98,6 +98,7 @@ run: $(OS_IMAGE)
 	$(QEMU) -drive format=raw,file=$< -m 32 -serial stdio
 
 clean:
+	chmod -R u+w $(BUILD_DIR) 2>/dev/null || true
 	rm -rf $(BUILD_DIR) $(DISK_DIR) ps2os.iso
 
 test-integration:
