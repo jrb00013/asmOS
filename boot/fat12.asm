@@ -7,9 +7,6 @@ global init_fat12
 global fat12_list_files
 global fat12_read_sector
 global fat12_write_sector
-global disable_interrupts_asm
-global enable_interrupts_asm
-global detect_ps2_memory
 global init_ps2_controllers
 
 ; Imported functions
@@ -43,64 +40,6 @@ root_buffer resb 512*14  ; Root directory buffer
 
 ; Code section
 section .text
-
-disable_interrupts_asm:
-    cli
-    ret
-
-enable_interrupts_asm:
-    sti
-    ret
-
-; PS2 memory detection
-detect_ps2_memory:
-    push ebx
-    push ecx
-    push edx
-    push edi
-    
-    ; Try to get memory map using BIOS E820
-    xor ebx, ebx
-    mov edx, 'PAMS'
-    mov ecx, 20
-    mov edi, memory_map_buffer
-    
-    mov eax, 0xE820
-    int 0x15
-    jc .fallback_memory
-    
-    ; If we got memory map, calculate total
-    mov eax, 0
-    mov ecx, 0
-    
-.memory_loop:
-    cmp dword [edi + 16], 1  ; Type 1 = available memory
-    jne .next_entry
-    
-    mov eax, [edi + 8]   ; Length
-    add eax, [edi + 12]  ; Length high
-    add ecx, eax
-    
-.next_entry:
-    add edi, 20
-    test ebx, ebx
-    jnz .memory_loop
-    
-    ; Convert to MB
-    shr ecx, 20
-    mov eax, ecx
-    jmp .done
-    
-.fallback_memory:
-    ; Fallback: assume PS2 has 32MB
-    mov eax, 32
-    
-.done:
-    pop edi
-    pop edx
-    pop ecx
-    pop ebx
-    ret
 
 ; PS2 controller initialization
 init_ps2_controllers:
