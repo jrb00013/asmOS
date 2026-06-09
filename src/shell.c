@@ -345,22 +345,15 @@ static void cmd_echo(char *args) {
 }
 
 static void cmd_reboot(char *args) {
-    kprint("Rebooting PS2 system...\n");
+    (void)args;
+    kprint("Rebooting system...\n");
     for (volatile int i = 0; i < 1000000; i++);
-#ifdef PLATFORM_PS2
     plat_reboot();
-#else
-    asm volatile("int $0x19");
-#endif
 }
 
 static void cmd_meminfo(char *args) {
-    uint32_t mem_kb;
-#ifdef PLATFORM_PS2
-    mem_kb = sys_get_memory_size();
-#else
-    asm volatile("call get_memory_info" : "=a"(mem_kb));
-#endif
+    (void)args;
+    uint32_t mem_kb = sys_get_memory_size();
     kprint("\n  ");
     kprint_color(" memory ", C_MAGENTA);
     kprint_color(" ----------------------------------------\n", C_DIM);
@@ -424,11 +417,7 @@ static void cmd_sound(char *args) {
     kprint("=========================\n");
     kprint("Initializing SPU2 sound system...\n");
     
-#ifdef PLATFORM_PS2
     sys_sound_init();
-#else
-    asm volatile("call sys_sound_init");
-#endif
     
     kprint("Sound system initialized!\n");
     kprint("SPU2 Features:\n");
@@ -445,11 +434,7 @@ static void cmd_graphics(char *args) {
     kprint("============================\n");
     kprint("Initializing Graphics Synthesizer...\n");
     
-#ifdef PLATFORM_PS2
     sys_graphics_init();
-#else
-    asm volatile("call sys_graphics_init");
-#endif
     
     kprint("Graphics system initialized!\n");
     kprint("Graphics Synthesizer Features:\n");
@@ -466,14 +451,8 @@ static void cmd_timer(char *args) {
     kprint("=================\n");
     kprint("Initializing timers...\n");
     
-#ifdef PLATFORM_PS2
     sys_timer_init();
     uint32_t timer_value = sys_timer_get();
-#else
-    asm volatile("call sys_timer_init");
-    uint32_t timer_value;
-    asm volatile("call sys_timer_get" : "=a"(timer_value));
-#endif
     
     kprintf("Timer initialized! Current value: %u\n", timer_value);
     kprint("Available timers:\n");
