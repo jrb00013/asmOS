@@ -3,14 +3,9 @@
  * Used when not building for PS2 (no PS2_HARDWARE).
  */
 #include "keyboard.h"
+#include "arch_x86.h"
 
 #ifndef PS2_HARDWARE
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t ret;
-    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
-    return ret;
-}
 
 /* Bit 0 of status = output buffer full (data available at 0x60) */
 int keyboard_has_key(void) {
