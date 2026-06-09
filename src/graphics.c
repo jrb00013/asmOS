@@ -5,9 +5,7 @@
 #ifndef PLATFORM_PS2
 #include "keyboard.h"
 #endif
-#ifdef PLATFORM_PS2
 #include "syscalls.h"
-#endif
 #include <stdint.h>
 
 /* Demo objects */
@@ -22,7 +20,7 @@ static void init_graphics_hw(void) {
 }
 #elif defined(PS2_HARDWARE)
 static void init_graphics_hw(void) {
-    asm volatile("call sys_graphics_init");
+    sys_graphics_init();
 }
 #else
 static void set_palette_16(void) {
@@ -245,9 +243,7 @@ int check_key_press(void) {
     sys_ps2_controller_read(pad);
     return (pad[0] | pad[1]) != 0;
 #elif defined(PS2_HARDWARE)
-    uint32_t key_data;
-    asm volatile("call sys_ps2_controller_read" : "=a"(key_data));
-    return (key_data & 0x00000001) != 0;
+    return keyboard_has_key();
 #else
     return keyboard_has_key();
 #endif

@@ -1,10 +1,10 @@
-/* x86 platform HAL — keyboard and controller input. */
+/* x86 platform HAL — keyboard input (no fake controller stubs). */
 
 #include "platform.h"
 #include "keyboard.h"
 #include <stdint.h>
 
-extern void init_ps2_controllers(void);
+extern uint8_t scancode_to_ascii(uint8_t sc, uint32_t shift);
 
 int plat_keyboard_scancode(void) {
     return (int)keyboard_get_scancode();
@@ -20,13 +20,14 @@ int plat_controller_read(int port, plat_controller_state_t *out) {
     out->buttons = 0;
     out->lx = out->ly = out->rx = out->ry = 0;
     if (port != 0) return -1;
-    uint8_t data[6];
-    asm volatile("call sys_ps2_controller_read" : : "a"(data) : "memory");
+    if (!keyboard_has_key()) return 0;
+    uint8_t sc = keyboard_get_scancode();
+    static int shift;
+    if (sc == 0x2A || sc == 0x36) { shift = 1; return 0; }
+    if (sc == 0xAA || sc == 0xB6) { shift = 0; return 0; }
+    char c = (char)scancode_to_ascii(sc, (uint32_t)shift);
+    if (!c) return 0;
     out->present = 1;
-    out->buttons = (uint16_t)(data[0] | (data[1] << 8));
-    out->lx = (int8_t)data[2];
-    out->ly = (int8_t)data[3];
-    out->rx = (int8_t)data[4];
-    out->ry = (int8_t)data[5];
+    out->buttons = (uint16_t)c;
     return 0;
 }
