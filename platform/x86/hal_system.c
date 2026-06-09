@@ -43,14 +43,17 @@ uint32_t plat_ticks_ms(void) {
     return tick_ms;
 }
 
+extern void cpu_pause(void);
+extern void system_reboot(void);
+
 void plat_delay_ms(uint32_t ms) {
     for (uint32_t i = 0; i < ms * 1000; i++)
-        asm volatile("pause");
+        cpu_pause();
     tick_ms += ms;
 }
 
 void plat_reboot(void) {
-    halt_system();
+    system_reboot();
 }
 
 int plat_temp_celsius(int *out_celsius) {

@@ -100,14 +100,11 @@ void kernel_main(void) {
 }
 
 // System halt function
+extern void system_reboot(void);
+
 void halt_system(void) {
     kprint("System halted.\n");
-#ifdef PLATFORM_PS2
-    plat_reboot();
-#else
-    asm volatile("int $0x16");
-    asm volatile("int $0x19");
-#endif
+    system_reboot();
 }
 
 // Get system memory function

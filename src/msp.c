@@ -1,13 +1,16 @@
 #include "msp.h"
 
+extern void disable_interrupts_asm(void);
+extern void enable_interrupts_asm(void);
+
 void disable_interrupts(void) {
 #ifndef PLATFORM_PS2
-    __asm__("cli");
+    disable_interrupts_asm();
 #endif
 }
 
 void enable_interrupts(void) {
 #ifndef PLATFORM_PS2
-    __asm__("sti");
+    enable_interrupts_asm();
 #endif
 }
