@@ -2,6 +2,7 @@
 #include "msp.h"
 #include "kernel.h"
 #include "memory_manager.h"
+#include "arch_x86.h"
 #include <stdint.h>
 
 static struct {
@@ -54,27 +55,13 @@ void task_yield(void) {
     uint32_t *save_to = &task_list[current_task].esp;
     uint32_t load_esp = task_list[next].esp;
     current_task = next;
-    asm volatile(
-        "pusha\n\t"
-        "movl %0, %%eax\n\t"
-        "movl %%esp, (%%eax)\n\t"
-        "movl %1, %%esp\n\t"
-        "popa\n\t"
-        "ret\n\t"
-        : : "r"(save_to), "r"(load_esp) : "eax", "memory"
-    );
+    task_yield_asm(save_to, load_esp);
 }
 
 void run_scheduler(void) {
     if (task_count <= 0) return;
     current_task = 0;
-    uint32_t esp = task_list[0].esp;
-    asm volatile(
-        "movl %0, %%esp\n\t"
-        "popa\n\t"
-        "ret\n\t"
-        : : "r"(esp) : "memory"
-    );
+    run_scheduler_asm(task_list[0].esp);
     while (1) task_yield();
 }
 #endif
