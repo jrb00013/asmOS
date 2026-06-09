@@ -12,7 +12,7 @@ MTOOLS_MKE2F = 1
 DD = dd
 
 CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude -march=i686 -mtune=pentium3 -fno-stack-protector -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter -Wno-unused-label
-ASFLAGS = -f elf32 -w+other -DPLATFORM_X86=1
+ASFLAGS = -f elf32 -w+other -DPLATFORM_X86=1 -I$(BOOT_DIR)/arch_x86
 LDFLAGS = -m elf_i386 -T llinker/linker.ld --gc-sections
 
 SRC_DIR = src
@@ -26,7 +26,7 @@ KERNEL_C = $(filter-out $(SRC_DIR)/block_dev.c $(SRC_DIR)/fat12.c, \
            $(wildcard $(SRC_DIR)/*.c) $(wildcard platform/x86/*.c) $(wildcard $(SRC_DIR)/net/*.c) \
            $(wildcard $(SRC_DIR)/quantum/*.c) $(wildcard $(SRC_DIR)/subsys/*.c))
 BOOT_ASM_BIN = boot.asm bootsect.asm loader.asm stage1.asm fatload16.asm image.asm gdt.asm pm.asm rm_thunk.asm stage2_entry.asm
-SRC_ASM = $(filter-out $(addprefix $(BOOT_DIR)/,$(BOOT_ASM_BIN)), $(wildcard $(BOOT_DIR)/*.asm))
+SRC_ASM = $(filter-out $(addprefix $(BOOT_DIR)/,$(BOOT_ASM_BIN) syscalls.asm), $(wildcard $(BOOT_DIR)/*.asm))
 ARCH_X86_ASM = $(wildcard $(ARCH_X86_DIR)/*.asm)
 
 OBJ_C = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C))
