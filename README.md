@@ -1,6 +1,6 @@
 # PS2 Command Core OS (asmos)
 
-A next-gen custom operating layer for the PlayStation 2: **CLI power interface**, advanced memory management, and network/party features. Built as a fully-featured x86 Assembly Real-Mode OS (with PS2 targeting), optimized for PS2 hardware with modchip support.
+A next-gen custom operating layer for the PlayStation 2: **CLI power interface**, advanced memory management, and network/party features. Built as a **NASM real-mode boot chain + x86 assembly kernel glue + C kernel**, with a platform HAL multiplexed for PS2 EE (FreeMCBoot) and x86 QEMU/modchip CD targets.
 
 ## PS2 Compatibility
 
@@ -82,9 +82,13 @@ growisofs -dvd-compat -Z /dev/sr0=ps2os.iso
 - `make clean` - Clean build artifacts
 - `make info` - Show build information
 
-### v2.0 Architecture
+### v3.0 Architecture
 
-- **Platform HAL** (`include/platform.h`, `platform/x86/`) — shared kernel logic with x86 backend
+- **NASM boot** (`boot/stage1.asm`, `fatload16.asm`, `pm.asm`) — real-mode FAT12 load, protected-mode handoff
+- **NASM kernel glue** (`boot/arch_x86/`, `boot/syscalls.asm`, `boot/fat12.asm`) — port I/O, context switch, syscalls
+- **C kernel** (`src/`, `platform/x86/`) — shell, scheduler policy, memory, net, subsystems
+- **Platform HAL** (`include/platform.h`, `platform/x86/`, `platform/ps2/`) — shared logic, target-specific backends
+- **Note:** `boot/stage2.c` is an alternate C FAT loader path; the live x86 CD/QEMU boot uses NASM stage1 only
 - **Network stack** (`src/net/`, `src/net_clients.c`) — UDP transport, ping, FTP/telnet/IRC clients
 - **FAT12 I/O** — read/write/delete via platform storage layer
 - **FreeMCBoot** — `scripts/build_fmcb_package.sh`, `docs/HARDWARE_TESTING.md`

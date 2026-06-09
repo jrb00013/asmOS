@@ -1,4 +1,5 @@
-/* Stage2 bootloader: protected-mode FAT12 kernel loader. */
+/* Stage2 bootloader: protected-mode FAT12 kernel loader (alternate path).
+ * Not linked by the x86 Makefile — live boot uses NASM stage1 + fatload16. */
 
 #include <stdint.h>
 #include "boot_meta.h"
