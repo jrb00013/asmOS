@@ -49,6 +49,7 @@ stage2_entry:
     call fatload16_load_kernel
     mov si, kernel_loaded_msg
     call print_string
+    call probe_mem_rm
     call switch_to_pm
 
 %define FAT12_DATA_START 49
@@ -197,6 +198,32 @@ gdt_descriptor:
     dd gdt_start
 CODE_SEG equ 0x08
 DATA_SEG equ 0x10
+
+%define BOOT_PARAMS_PHYS 0x500
+
+; Real-mode memory probe — int 15h AH=E801 extended memory size.
+probe_mem_rm:
+    push ax
+    push bx
+    mov ax, 0xE801
+    int 0x15
+    jc .pm_fallback
+    mov ax, bx
+    and ax, 0xFFFF
+    add ax, cx
+    shr ax, 10
+    jz .pm_fallback
+    movzx eax, ax
+    mov [BOOT_PARAMS_PHYS], eax
+    jmp .pm_drive
+.pm_fallback:
+    mov dword [BOOT_PARAMS_PHYS], 32
+.pm_drive:
+    mov al, [boot_drive]
+    mov [BOOT_PARAMS_PHYS + 4], al
+    pop bx
+    pop ax
+    ret
 
 switch_to_pm:
     cli
