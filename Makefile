@@ -12,11 +12,12 @@ MTOOLS_MKE2F = 1
 DD = dd
 
 CFLAGS = -m32 -Wall -O2 -g -ffreestanding -nostdlib -fno-builtin -Iinclude -march=i686 -mtune=pentium3 -fno-stack-protector -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter -Wno-unused-label
-ASFLAGS = -f elf32 -w+other
+ASFLAGS = -f elf32 -w+other -DPLATFORM_X86=1
 LDFLAGS = -m elf_i386 -T llinker/linker.ld --gc-sections
 
 SRC_DIR = src
 BOOT_DIR = boot
+ARCH_X86_DIR = $(BOOT_DIR)/arch_x86
 BUILD_DIR = build
 DISK_DIR = disk
 TOOLS_DIR = tools
@@ -26,9 +27,11 @@ KERNEL_C = $(filter-out $(SRC_DIR)/block_dev.c $(SRC_DIR)/fat12.c, \
            $(wildcard $(SRC_DIR)/quantum/*.c) $(wildcard $(SRC_DIR)/subsys/*.c))
 BOOT_ASM_BIN = boot.asm bootsect.asm loader.asm stage1.asm fatload16.asm image.asm gdt.asm pm.asm rm_thunk.asm stage2_entry.asm
 SRC_ASM = $(filter-out $(addprefix $(BOOT_DIR)/,$(BOOT_ASM_BIN)), $(wildcard $(BOOT_DIR)/*.asm))
+ARCH_X86_ASM = $(wildcard $(ARCH_X86_DIR)/*.asm)
 
 OBJ_C = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C))
-OBJ_ASM = $(patsubst $(BOOT_DIR)/%.asm,$(BUILD_DIR)/%.o,$(SRC_ASM))
+OBJ_ASM = $(patsubst $(BOOT_DIR)/%.asm,$(BUILD_DIR)/%.o,$(SRC_ASM)) \
+          $(patsubst $(ARCH_X86_DIR)/%.asm,$(BUILD_DIR)/arch_x86/%.o,$(ARCH_X86_ASM))
 OBJS = $(OBJ_C) $(OBJ_ASM)
 
 BOOTSECT_BIN = $(BUILD_DIR)/bootsect.bin
@@ -76,6 +79,11 @@ $(BUILD_DIR)/%.o: $(BOOT_DIR)/%.asm
 	@echo "  AS    $<"
 	@$(AS) $(ASFLAGS) $< -o $@
 
+$(BUILD_DIR)/arch_x86/%.o: $(ARCH_X86_DIR)/%.asm
+	@mkdir -p $(BUILD_DIR)/arch_x86
+	@echo "  AS    $<"
+	@$(AS) $(ASFLAGS) $< -o $@
+
 $(KERNEL_ELF): $(OBJS)
 	@echo "  LD    kernel.elf"
 	@$(LD) $(LDFLAGS) -o $@ $^
@@ -115,3 +123,4 @@ setup:
 
 info:
 	@echo "ASMOS v3.0 — load addr 0x100000, FAT12 KERNEL.BIN"
+	@echo "Source mix: $$(find boot -name '*.asm' | xargs wc -l 2>/dev/null | tail -1 | awk '{print $$1}') asm lines, $$(find src platform/x86 -name '*.c' | xargs wc -l 2>/dev/null | tail -1 | awk '{print $$1}') x86 kernel C lines"
