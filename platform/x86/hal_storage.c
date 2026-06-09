@@ -98,6 +98,19 @@ int plat_fs_init(void) {
     return fs_ready ? 0 : -1;
 }
 
+void fat12_list_files(void) {
+    plat_file_info_t files[32];
+    int n = plat_fs_list(files, 32);
+    int i;
+    if (n < 0) {
+        kprint("  fs: list failed\n");
+        return;
+    }
+    for (i = 0; i < n; i++)
+        kprintf("  %-12s %6u bytes\n", files[i].name, (unsigned)files[i].size);
+    kprintf("  %d file(s)\n", n);
+}
+
 int plat_fs_list(plat_file_info_t *out, unsigned int max) {
     unsigned int n = 0;
     if (!fs_ready && plat_fs_init() != 0) return -1;
