@@ -9,6 +9,7 @@ make clean >/dev/null 2>&1 || true
 make all
 
 bash tests/integration/check_fat_chain.sh
+bash tests/integration/check_wiring.sh
 
 for sym in _kernel_start fat12_read_file plat_fs_write plat_net_init net_init subsys_init_all; do
     if ! nm build/kernel.elf 2>/dev/null | grep -q " $sym"; then

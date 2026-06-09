@@ -12,7 +12,7 @@ fi
 [[ -f "$IMG" ]] || { echo "FAIL: missing $IMG"; exit 1; }
 
 OUT="$(timeout 20 "$QEMU" \
-    -drive format=raw,file="$IMG" \
+    -drive file="$IMG",format=raw,if=ide,index=0,media=disk \
     -m 32 \
     -display none \
     -device isa-debugcon,iobase=0xe9 \

@@ -26,7 +26,7 @@ KERNEL_C = $(filter-out $(SRC_DIR)/block_dev.c $(SRC_DIR)/fat12.c, \
            $(wildcard $(SRC_DIR)/*.c) $(wildcard platform/x86/*.c) $(wildcard $(SRC_DIR)/net/*.c) \
            $(wildcard $(SRC_DIR)/quantum/*.c) $(wildcard $(SRC_DIR)/subsys/*.c))
 BOOT_ASM_BIN = boot.asm bootsect.asm loader.asm stage1.asm fatload16.asm image.asm gdt.asm pm.asm rm_thunk.asm stage2_entry.asm
-SRC_ASM = $(filter-out $(addprefix $(BOOT_DIR)/,$(BOOT_ASM_BIN) syscalls.asm), $(wildcard $(BOOT_DIR)/*.asm))
+SRC_ASM = $(filter-out $(addprefix $(BOOT_DIR)/,$(BOOT_ASM_BIN) syscalls.asm disk.asm print.asm), $(wildcard $(BOOT_DIR)/*.asm))
 ARCH_X86_ASM = $(wildcard $(ARCH_X86_DIR)/*.asm)
 
 OBJ_C = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C))
@@ -103,7 +103,7 @@ $(OS_IMAGE): $(STAGE1_BIN) $(KERNEL_BIN) $(BOOT_META)
 	@echo "Disk image: $@ ($$(stat -c%s $@) bytes)"
 
 run: $(OS_IMAGE)
-	$(QEMU) -drive format=raw,file=$< -m 32 -serial stdio
+	$(QEMU) -drive file=$<,format=raw,if=ide,index=0,media=disk -m 32 -serial stdio
 
 clean:
 	chmod -R u+w $(BUILD_DIR) 2>/dev/null || true
