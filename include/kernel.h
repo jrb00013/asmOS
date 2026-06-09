@@ -18,7 +18,9 @@ void kprint_char(char c);
 void kprintf(const char *format, ...);
 void print_hex(unsigned int value);
 void print_decimal(int value);
+#ifndef PLATFORM_PS2
 void putchar(char c);
+#endif
 void print_string(const char* str);
 int ksstrcmp(const char *s1, const char *s2);
 int ksscanf(const char *str, const char *format, ...);

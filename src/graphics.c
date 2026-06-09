@@ -2,7 +2,12 @@
 #include "kernel.h"
 #include "video.h"
 #include "font_8x8.h"
+#ifndef PLATFORM_PS2
 #include "keyboard.h"
+#endif
+#ifdef PLATFORM_PS2
+#include "syscalls.h"
+#endif
 #include <stdint.h>
 
 /* Demo objects */
@@ -11,8 +16,9 @@ static uint32_t object_count = 0;
 static uint32_t demo_running = 0;
 
 #if defined(PS2_HARDWARE) && defined(PLATFORM_PS2)
+#include "platform.h"
 static void init_graphics_hw(void) {
-    sys_graphics_init();
+    plat_video_mode_text();
 }
 #elif defined(PS2_HARDWARE)
 static void init_graphics_hw(void) {
@@ -234,7 +240,11 @@ void set_pixel(uint32_t x, uint32_t y, uint32_t color) {
 }
 
 int check_key_press(void) {
-#ifdef PS2_HARDWARE
+#ifdef PLATFORM_PS2
+    uint8_t pad[6];
+    sys_ps2_controller_read(pad);
+    return (pad[0] | pad[1]) != 0;
+#elif defined(PS2_HARDWARE)
     uint32_t key_data;
     asm volatile("call sys_ps2_controller_read" : "=a"(key_data));
     return (key_data & 0x00000001) != 0;

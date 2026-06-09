@@ -27,6 +27,9 @@
 #include "net_clients.h"
 #include "subsys.h"
 #include "quantum.h"
+#ifdef PLATFORM_PS2
+#include "syscalls.h"
+#endif
 
 /* VGA attribute byte: (bg << 4) | fg. Bold CLI palette. */
 #define C_DEFAULT  0x07  /* light gray on black */
@@ -344,12 +347,20 @@ static void cmd_echo(char *args) {
 static void cmd_reboot(char *args) {
     kprint("Rebooting PS2 system...\n");
     for (volatile int i = 0; i < 1000000; i++);
+#ifdef PLATFORM_PS2
+    plat_reboot();
+#else
     asm volatile("int $0x19");
+#endif
 }
 
 static void cmd_meminfo(char *args) {
     uint32_t mem_kb;
+#ifdef PLATFORM_PS2
+    mem_kb = sys_get_memory_size();
+#else
     asm volatile("call get_memory_info" : "=a"(mem_kb));
+#endif
     kprint("\n  ");
     kprint_color(" memory ", C_MAGENTA);
     kprint_color(" ----------------------------------------\n", C_DIM);

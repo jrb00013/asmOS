@@ -31,6 +31,21 @@ task_id_t task_current(void) {
     return (task_id_t)current_task;
 }
 
+#ifdef PLATFORM_PS2
+/* MIPS EE: cooperative round-robin without x86 context switch. */
+void task_yield(void) {
+    if (task_count <= 0) return;
+    if (current_task < 0) current_task = 0;
+    current_task = (current_task + 1) % task_count;
+    if (task_list[current_task].func)
+        task_list[current_task].func();
+}
+
+void run_scheduler(void) {
+    if (task_count > 0 && task_list[0].func)
+        task_list[0].func();
+}
+#else
 /* Save current esp, switch to next task's esp, popa, ret. Cooperative multitasking. */
 void task_yield(void) {
     if (task_count <= 0) return;
@@ -53,7 +68,6 @@ void task_yield(void) {
 void run_scheduler(void) {
     if (task_count <= 0) return;
     current_task = 0;
-    /* Load first task's stack and jump to it. */
     uint32_t esp = task_list[0].esp;
     asm volatile(
         "movl %0, %%esp\n\t"
@@ -61,9 +75,9 @@ void run_scheduler(void) {
         "ret\n\t"
         : : "r"(esp) : "memory"
     );
-    /* When all tasks yield back to us we might land here; loop. */
     while (1) task_yield();
 }
+#endif
 
 void init_scheduler(void) {
     kprintf("Scheduler: %d tasks registered\n", task_count);
