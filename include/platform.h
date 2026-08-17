@@ -56,6 +56,12 @@ int plat_fs_repair(void);
 int plat_fs_read_sector(uint32_t lba, void *buf);
 int plat_fs_write_sector(uint32_t lba, const void *buf);
 
+/* Directory navigation (both platforms). cwd/chdir/mkdir let the shell
+ * offer real "cd"/"pwd"/"mkdir" instead of flat-root-only file access. */
+int plat_fs_cwd(char *buf, unsigned int max);
+int plat_fs_chdir(const char *name);
+int plat_fs_mkdir(const char *name);
+
 /* Input */
 int plat_keyboard_scancode(void);
 int plat_keyboard_has_key(void);
