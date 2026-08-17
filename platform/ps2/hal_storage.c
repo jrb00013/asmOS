@@ -57,7 +57,7 @@ int plat_fs_list(plat_file_info_t *out, unsigned int max) {
             (ent->d_name[1] == '\0' || (ent->d_name[1] == '.' && ent->d_name[2] == '\0')))
             continue; /* skip "." and ".." like the x86 listing does */
 
-        char full[MC_CWD_MAX + 32];
+        char full[MC_CWD_MAX + 64];
         snprintf(full, sizeof(full), "%s/%s", dirpath, ent->d_name);
         struct stat st;
         int is_dir = 0;
@@ -126,7 +126,7 @@ int plat_fs_chdir(const char *name) {
     else
         snprintf(candidate, sizeof(candidate), "%s", name);
 
-    char full[MC_CWD_MAX + 32];
+    char full[MC_CWD_MAX + 64];
     snprintf(full, sizeof(full), "%s/%s", MC_BASE, candidate);
     struct stat st;
     if (stat(full, &st) != 0 || !S_ISDIR(st.st_mode)) return -1;
@@ -137,7 +137,7 @@ int plat_fs_chdir(const char *name) {
 }
 
 int plat_fs_read(const char *name, void *buf, uint32_t buf_size, uint32_t *out_size) {
-    char path[128];
+    char path[256];
     int fd, n;
     if (!name || !buf) return -1;
     mc_path(path, sizeof(path), name);
@@ -151,7 +151,7 @@ int plat_fs_read(const char *name, void *buf, uint32_t buf_size, uint32_t *out_s
 }
 
 int plat_fs_write(const char *name, const void *data, uint32_t size) {
-    char path[128];
+    char path[256];
     int fd, n;
     if (!name || !data) return -1;
     mc_path(path, sizeof(path), name);
@@ -163,7 +163,7 @@ int plat_fs_write(const char *name, const void *data, uint32_t size) {
 }
 
 int plat_fs_delete(const char *name) {
-    char path[128];
+    char path[256];
     if (!name) return -1;
     mc_path(path, sizeof(path), name);
     return remove(path);

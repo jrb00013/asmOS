@@ -44,8 +44,33 @@ void plat_delay_ms(uint32_t ms) {
     tick_ms += ms;
 }
 
+/* LoadExecPS2() is the real PS2SDK EE-kernel call (declared in the PS2SDK
+ * <kernel.h> pulled in above, syscall __NR__LoadExecPS2) used to hand
+ * control to another ELF — it is the same mechanism homebrew loaders use
+ * for a "return to browser"/soft-reset path. Booting "rom0:PS2LOGO" hands
+ * control back to the console's own boot ROM logo app, which is the
+ * standard PS2SDK idiom for a software reboot when there is no dedicated
+ * hardware reset line to pull (unlike a real power-cycle). It is declared
+ * __attribute__((noreturn)) and does not return on real hardware or under
+ * FreeMCBoot; the loop below is only a safety net if a given BIOS/loader
+ * combination fails to take over.
+ *
+ * src/kernel.c's halt_system() calls system_reboot() directly (mirroring
+ * the x86 arch, where system_reboot is the NASM real-mode reset routine),
+ * so that entry point is implemented here too — plat_reboot() just calls
+ * it, exactly like platform/x86/hal_system.c's plat_reboot() calls the
+ * NASM system_reboot(). */
+void system_reboot(void) {
+    scr_printf("Rebooting PS2...\n");
+    DelayThread(500000); /* let the message reach the screen before reset */
+    LoadExecPS2("rom0:PS2LOGO", 0, NULL);
+    while (1) {
+        DelayThread(1000000);
+    }
+}
+
 void plat_reboot(void) {
-    scr_printf("Reboot not implemented on PS2 — reset console.\n");
+    system_reboot();
 }
 
 int plat_temp_celsius(int *out_celsius) {
