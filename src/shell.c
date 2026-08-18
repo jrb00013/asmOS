@@ -57,6 +57,8 @@ static void cmd_meminfo(char *args);
 static void cmd_exit(char *args);
 static void cmd_ps2info(char *args);
 static void cmd_cd(char *args);
+static void cmd_pwd(char *args);
+static void cmd_mkdir(char *args);
 static void cmd_cat(char *args);
 static void cmd_clear(char *args);
 static void cmd_date(char *args);
@@ -103,6 +105,8 @@ static shell_command_t commands[] = {
     {"help", cmd_help, "Show available commands"},
     {"ls", cmd_ls, "List files in current directory"},
     {"cd", cmd_cd, "Change directory"},
+    {"pwd", cmd_pwd, "Print current directory"},
+    {"mkdir", cmd_mkdir, "Create a directory"},
     {"cat", cmd_cat, "Display file contents"},
     {"meminfo", cmd_meminfo, "Show memory information"},
     {"ps2info", cmd_ps2info, "Show PS2 hardware information"},
@@ -303,16 +307,55 @@ static void cmd_ls(char *args) {
 }
 
 static void cmd_cd(char *args) {
+    char cwd[128];
     if (ksstrcmp(args, "") == 0) {
+        if (plat_fs_cwd(cwd, sizeof(cwd)) != 0) {
+            kprint("  cwd: /\n");
+            return;
+        }
         kprint("  ");
         kprint_color("cwd", C_DIM);
-        kprint(" /\n");
-    } else {
+        kprintf(" %s\n", cwd);
+        return;
+    }
+    if (plat_fs_chdir(args) != 0) {
         kprint("  ");
         kprint_color("cd", C_CYAN);
-        kprintf(" %s ", args);
-        kprint_color("(nav not impl)\n", C_DIM);
+        kprintf(" %s: ", args);
+        kprint_color("no such directory\n", C_DIM);
+        return;
     }
+    if (plat_fs_cwd(cwd, sizeof(cwd)) == 0) {
+        kprint("  ");
+        kprint_color("cwd", C_DIM);
+        kprintf(" %s\n", cwd);
+    }
+}
+
+static void cmd_pwd(char *args) {
+    (void)args;
+    char cwd[128];
+    if (plat_fs_cwd(cwd, sizeof(cwd)) != 0) {
+        kprint("  /\n");
+        return;
+    }
+    kprintf("  %s\n", cwd);
+}
+
+static void cmd_mkdir(char *args) {
+    if (ksstrcmp(args, "") == 0) {
+        kprint("  ");
+        kprint_color("usage", C_DIM);
+        kprint(": ");
+        kprint_color("mkdir", C_CYAN);
+        kprint(" <name>\n");
+        return;
+    }
+    if (plat_fs_mkdir(args) != 0) {
+        kprintf("  mkdir: %s: failed (exists or disk full)\n", args);
+        return;
+    }
+    kprintf("  mkdir: %s created\n", args);
 }
 
 static void cmd_cat(char *args) {
@@ -324,10 +367,18 @@ static void cmd_cat(char *args) {
         kprint(" <file>\n");
         return;
     }
-    kprint("  ");
-    kprint_color("cat", C_CYAN);
-    kprintf(" %s ", args);
-    kprint_color("(read not impl)\n", C_DIM);
+    static char cat_buf[65536];
+    uint32_t got = 0;
+    if (plat_fs_read(args, cat_buf, sizeof(cat_buf) - 1, &got) != 0) {
+        kprint("  ");
+        kprint_color("cat", C_CYAN);
+        kprintf(" %s: ", args);
+        kprint_color("no such file\n", C_DIM);
+        return;
+    }
+    cat_buf[got] = '\0';
+    kprint(cat_buf);
+    kprint("\n");
 }
 
 static void cmd_clear(char *args) {

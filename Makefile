@@ -103,7 +103,14 @@ $(OS_IMAGE): $(STAGE1_BIN) $(KERNEL_BIN) $(BOOT_META)
 	@echo "Disk image: $@ ($$(stat -c%s $@) bytes)"
 
 run: $(OS_IMAGE)
-	$(QEMU) -drive file=$<,format=raw,if=ide,index=0,media=disk -m 32 -serial stdio
+	@# disk/os.img is a floppy-formatted FAT12 volume (18 sectors/track, 2
+	@# heads per its own BPB) — attaching it as an IDE hard disk
+	@# (-drive if=ide) makes SeaBIOS use its own auto-detected CHS
+	@# geometry instead, which silently sends every INT13h CHS read in
+	@# boot/bootsect.asm and boot/loader.asm to the wrong physical sector.
+	@# Boot it as a floppy (-fda), matching what it actually is, the same
+	@# fix applied to tests/integration/boot_qemu.sh.
+	$(QEMU) -fda $< -m 32 -serial stdio
 
 clean:
 	chmod -R u+w $(BUILD_DIR) 2>/dev/null || true

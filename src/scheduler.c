@@ -13,17 +13,35 @@ static struct {
 static int task_count = 0;
 static int current_task = -1;  /* -1 until first yield or run */
 
+/* Default EFLAGS for a never-yet-run task: reserved bit 1 set, IF (0x200)
+ * set so the task starts with interrupts enabled, matching what a real
+ * pushfd would capture on a normally running task. */
+#define TASK_INIT_EFLAGS 0x202u
+
+/* Number of 32-bit words task_yield_asm's popa restores (EAX,ECX,EDX,EBX,
+ * (discarded ESP slot),EBP,ESI,EDI) — must match the pusha it mirrors. */
+#define CTX_GPR_WORDS 8
+
 void add_task(void (*task_func)(void)) {
     if (task_count < MAX_TASKS) {
         uint8_t *stack = (uint8_t*)malloc(1024);
         if (!stack) return;
         task_list[task_count].func = task_func;
-        /* Stack: high addr = top. We need space for pusha (32 bytes) + ret addr (4). */
-        task_list[task_count].esp = (uint32_t)(stack + 1024 - 36);
-        uint32_t *stack_top = (uint32_t*)(stack + 1024 - 36);
-        stack_top[0] = 0; stack_top[1] = 0; stack_top[2] = 0; stack_top[3] = 0;
-        stack_top[4] = 0; stack_top[5] = 0; stack_top[6] = 0; stack_top[7] = 0;  /* pusha placeholder */
-        stack_top[8] = (uint32_t)task_func;  /* return addr = task entry */
+
+        /* Build an initial context frame that is byte-for-byte what
+         * task_yield_asm's own pushfd+pusha would produce for a task that
+         * had already been running: [ CTX_GPR_WORDS general registers ]
+         * [ EFLAGS ] [ return address ], from low to high address. This is
+         * what popa; popfd; ret (in task_yield_asm / run_scheduler_asm)
+         * expects, so first-run and resumed tasks share one restore path. */
+        uint32_t frame_words = CTX_GPR_WORDS + 2; /* + eflags + return addr */
+        uint32_t *frame = (uint32_t*)(stack + 1024 - frame_words * 4);
+        task_list[task_count].esp = (uint32_t)frame;
+
+        for (int i = 0; i < CTX_GPR_WORDS; i++) frame[i] = 0; /* EAX..EDI = 0 */
+        frame[CTX_GPR_WORDS] = TASK_INIT_EFLAGS;               /* EFLAGS */
+        frame[CTX_GPR_WORDS + 1] = (uint32_t)task_func;        /* return addr */
+
         task_count++;
     }
 }
