@@ -32,11 +32,14 @@ int net_parse_ip(const char *str, uint32_t *out) {
     if (!str || !out) return -1;
     const char *p = str;
     uint32_t a = parse_octet(&p);
-    if (*p != '.') return -1; p++;
+    if (*p != '.') return -1;
+    p++;
     uint32_t b = parse_octet(&p);
-    if (*p != '.') return -1; p++;
+    if (*p != '.') return -1;
+    p++;
     uint32_t c = parse_octet(&p);
-    if (*p != '.') return -1; p++;
+    if (*p != '.') return -1;
+    p++;
     uint32_t d = parse_octet(&p);
     *out = (a << 24) | (b << 16) | (c << 8) | d;
     return 0;
@@ -45,7 +48,7 @@ int net_parse_ip(const char *str, uint32_t *out) {
 void net_ip_to_str(uint32_t ip, char *buf, int max) {
     if (!buf || max < 8) return;
     char tmp[16];
-    int pos = 0, seg, s;
+    int pos = 0, s;
     for (s = 3; s >= 0; s--) {
         uint32_t oct = (ip >> (s * 8)) & 0xFF;
         if (oct >= 100) tmp[pos++] = '0' + (char)(oct / 100);
