@@ -36,7 +36,11 @@ int main(int argc, char **argv) {
     memcpy(meta.magic, ASMOS_BOOT_MAGIC, 8);
     meta.kernel_magic = ASMOS_KERNEL_MAGIC;
     meta.kernel_load_addr = ASMOS_KERNEL_LOAD;
-    meta.kernel_entry = ASMOS_KERNEL_LOAD;
+    /* Was ASMOS_KERNEL_LOAD (i.e. claiming the entry point is the very
+     * first byte of the loaded image) — that's the .bootsig magic, not
+     * code. See ASMOS_KERNEL_ENTRY's comment in boot_meta.h: the real
+     * entry point is a fixed 0x1000 past the load address. */
+    meta.kernel_entry = ASMOS_KERNEL_ENTRY;
     meta.kernel_size = (uint32_t)sz;
     meta.kernel_cluster = 2;
     meta.meta_version = ASMOS_BOOT_VERSION;
