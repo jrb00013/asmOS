@@ -11,12 +11,31 @@ if [[ -z "$QEMU" ]]; then
 fi
 [[ -f "$IMG" ]] || { echo "FAIL: missing $IMG"; exit 1; }
 
+# Two things here differ from what you'd naively write, both found by
+# actually running this against a real QEMU (8.2) instead of assuming:
+#
+# 1. "-device isa-debugcon,iobase=0xe9 -debugcon file:PATH" errors out
+#    immediately on current QEMU ("Can't create debugcon device, empty
+#    char device") — the old shorthand no longer auto-creates a backend.
+#    Create the chardev explicitly and attach the device to it instead.
+#
+# 2. "-drive ...,if=ide" makes QEMU/SeaBIOS treat this as an IDE hard
+#    disk, which auto-detects its own CHS geometry rather than trusting
+#    this image's own FAT12 BPB (18 sectors/track, 2 heads). That
+#    geometry mismatch made every INT13h CHS read in boot/bootsect.asm
+#    and boot/loader.asm land on the wrong physical sectors — reads
+#    reported success but returned unrelated (usually all-zero) data.
+#    This image is a 1.44MB floppy-formatted FAT12 volume, not a
+#    partitioned hard disk, so booting it with "-fda" (BIOS floppy path,
+#    whose CHS geometry is unambiguous and matches this BPB) is the
+#    correct way to run it, not "-drive if=ide".
 OUT="$(timeout 20 "$QEMU" \
-    -drive file="$IMG",format=raw,if=ide,index=0,media=disk \
+    -fda "$IMG" \
     -m 32 \
     -display none \
-    -device isa-debugcon,iobase=0xe9 \
-    -debugcon file:/tmp/asmos_boot.log \
+    -chardev file,id=asmosdbg,path=/tmp/asmos_boot.log \
+    -device isa-debugcon,iobase=0xe9,chardev=asmosdbg \
+    -no-reboot \
     2>/dev/null || true)"
 
 LOG=/tmp/asmos_boot.log
