@@ -12,6 +12,13 @@ SECTIONS {
     }
 
     .text : ALIGN(4K) {
+        /* _kernel_start (src/kernel_start.c, section ".text.boot") must
+         * come first: boot/loader.asm jumps to a fixed physical address
+         * after relocating the kernel to 0x100000, with no ELF/symtab
+         * access at that point, so the entry point's address must be
+         * deterministic. Listing .text.boot before the general *(.text)
+         * wildcard guarantees that regardless of object/link order. */
+        *(.text.boot)
         *(.text)
     } > RAM :text
 
