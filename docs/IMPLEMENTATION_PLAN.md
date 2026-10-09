@@ -141,12 +141,43 @@ QEMU-version issue at all), plus one bug in how the test invoked QEMU.
 
 ### What's still open after round 2
 
-- **Interactive shell behavior past kernel entry is unexercised.** QEMU was
-  only run headlessly (`-display none`, no keyboard/serial input attached)
-  to capture debugcon markers. Confirming `kernel_main()`'s shell actually
-  responds to commands (the round-1 `cd`/`mkdir`/`ftp`/`telnet` work) would
-  need a scripted keystroke stream fed through QEMU's monitor or serial
-  console — a bounded but separate piece of follow-up work.
 - Everything else called out as open in `docs/ROADMAP.md` (behavioral HAL
   parity, FTP/telnet protocol interop, `src/fat12.c`) remains open for the
   same reasons stated there.
+- **Interactive shell behavior past kernel entry is now closed by round 3**
+  (see below) — the round-2 note that called it unexercised is superseded.
+
+## Round 3: `feat/roadmap-round-3` — live-shell verification + floppy driver
+
+Round 2 confirmed the kernel starts but never verified it *does* anything.
+The next follow-up was to drive the shell through a live QEMU session and
+make the FAT12 filesystem actually work end-to-end, since the x86 HAL's
+sector I/O still pointed at an ATA driver that had no disk behind `-fda`.
+
+1. **Build a QMP interaction harness.** `tests/integration/shell_fs_check.py`
+   boots `disk/os.img` with `-qmp unix:...`, types PS/2 keystrokes via HMP
+   `sendkey`, and reads the VGA text buffer back with `pmemsave`. During
+   development a variant (`/tmp/opencode/probe.py`) was used to iterate.
+2. **Write the 82077 floppy driver** (`boot/arch_x86/floppy.asm`): DOR/motor
+   control on the correct ports, DMA-mode transfers via 8237 channel 2
+   through a `0x8000` bounce buffer, correct READ/WRITE DATA encoding and
+   the full eight-parameter command phase (see `docs/ROADMAP.md` "What
+   changed in round 3" for the specific bugs found — reset port, DOR motor
+   bit, DMA page/single-mode mask, command opcodes, parameter order, and
+   head packing).
+3. **Route FAT12 I/O through the floppy.**`boot/fat12.asm` now jumps to
+   `floppy_read_sector`/`floppy_write_sector` by default, keeping `disk_read
+   _sector` (ATA PIO) reachable behind `PLATFORM_X86_DISK_ATA`.
+4. **Install a real IDT before interrupts matter.** `interrupt_init()` and
+   the PT/IDT stubs are wired into `kernel_main()` ahead of the scheduler so
+   the first exception vectors to a 32-bit gate instead of SeaBIOS's 16-bit
+   IVT (see original triple-fault work).
+5. **Fix `fat_normalize()`** (stale `j` index — names were never copied), then
+   update `tests/integration/check_wiring.sh` to expect the floppy symbols
+   (the ATA driver is gc-section'd out of the default build).
+6. **Verify:** `make test-integration` inside the QEMU Docker container now
+   runs the boot-marker check **and** the interactive shell/FS check
+   (`pwd`, `ls`, `cat`, `mkdir`, `cd`, nested `pwd`, empty-dir `ls`, `cd ..`)
+   against a live boot and passes all of them.
+7. **Documentation.** Updated `docs/ROADMAP.md` with the round-3 findings and
+   the new integration test.

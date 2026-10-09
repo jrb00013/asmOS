@@ -7,8 +7,8 @@ test -f "$ELF" || { echo "FAIL: missing $ELF"; exit 1; }
 
 syms=(
     _kernel_start
-    disk_read_sector
-    disk_write_sector
+    floppy_read_sector
+    floppy_write_sector
     detect_ps2_memory
     sys_read_line
     sys_timer_init

@@ -19,6 +19,9 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include "arch_x86.h"
+#ifndef PLATFORM_PS2
+#include "interrupts.h"
+#endif
 
 #ifndef PLATFORM_PS2
 // VGA text buffer starts at 0xB8000
@@ -38,6 +41,15 @@ static struct {
 // Enhanced kernel entry point with PS2 optimizations
 void kernel_main(void) {
     plat_init();
+#ifndef PLATFORM_PS2
+    /* Install the IDT and remap the 8259s before anything can raise an
+     * interrupt. SeaBIOS leaves IDTR pointing at its real-mode IVT, whose
+     * entries are 16-bit far pointers rather than 32-bit gates — with IF
+     * set and no LIDT ever executed, the first interrupt or exception
+     * vectors into that garbage, double-faults, and resets the machine
+     * before the shell ever runs. */
+    interrupt_init();
+#endif
     subsys_register_all();
     kprint("ASMOS Kernel v3.0 - Physical Console Edition\n");
 #ifndef PLATFORM_PS2
@@ -334,43 +346,111 @@ void print_hex(unsigned int value) {
     }
 }
 
+/* Render an unsigned value into buf (NUL-terminated), zero-padded to
+ * 'min_digits'. Returns the length written. */
+static int fmt_u32(char *buf, unsigned int value, unsigned int min_digits) {
+    char tmp[12];
+    int n = 0;
+    do {
+        tmp[n++] = (char)('0' + (value % 10));
+        value /= 10;
+    } while (value);
+    int len = 0;
+    for (int i = n; i < (int)min_digits; i++)
+        buf[len++] = '0';
+    for (int i = n - 1; i >= 0; i--)
+        buf[len++] = tmp[i];
+    buf[len] = '\0';
+    return len;
+}
+
+/* kprintf understands %s %c %d %i %u %x %X %p %% plus a flag/width pair:
+ * '-' left-justify, '0' zero-pad, and a decimal width. Length modifiers
+ * (l/h/z) are accepted and ignored — this kernel is 32-bit only and
+ * formats through unsigned int internally. There is no libc here to lean
+ * on, so the padding is done by hand; without it every "%-10s" in the
+ * shell printed a literal "?" instead of a padded field. */
 void kprintf(const char *format, ...) {
     va_list args;
     va_start(args, format);
 
     for (const char* ptr = format; *ptr != '\0'; ptr++) {
-        if (*ptr == '%') {
-            ptr++;
-            switch (*ptr) {
-                case 's': {
-                    const char* str = va_arg(args, const char*);
-                    print_string(str);
-                    break;
-                }
-                case 'c': {
-                    char c = (char)va_arg(args, int);
-                    putchar(c);
-                    break;
-                }
-                case 'd': {
-                    int val = va_arg(args, int);
-                    print_decimal(val);
-                    break;
-                }
-                case 'x': {
-                    unsigned int val = va_arg(args, unsigned int);
-                    print_hex(val);
-                    break;
-                }
-                case '%': {
-                    putchar('%');
-                    break;
-                }
-                default:
-                    putchar('?');
-            }
-        } else {
+        if (*ptr != '%') {
             putchar(*ptr);
+            continue;
+        }
+        ptr++;
+
+        int left = 0, zero = 0, width = 0;
+        if (*ptr == '-') { left = 1; ptr++; }
+        if (*ptr == '0') { zero = 1; ptr++; }
+        while (*ptr >= '0' && *ptr <= '9') {
+            width = width * 10 + (*ptr - '0');
+            ptr++;
+        }
+        while (*ptr == 'l' || *ptr == 'h' || *ptr == 'z') ptr++;
+
+        char pad = (zero && !left) ? '0' : ' ';
+
+        switch (*ptr) {
+            case 's': {
+                const char *str = va_arg(args, const char *);
+                if (!str) str = "(null)";
+                int len = 0;
+                while (str[len]) len++;
+                for (int i = len; i < width && !left; i++) putchar(' ');
+                for (int i = 0; i < len; i++) putchar(str[i]);
+                for (int i = len; i < width && left; i++) putchar(' ');
+                break;
+            }
+            case 'c': {
+                char c = (char)va_arg(args, int);
+                for (int i = 1; i < width && !left; i++) putchar(' ');
+                putchar(c);
+                for (int i = 1; i < width && left; i++) putchar(' ');
+                break;
+            }
+            case 'd':
+            case 'i': {
+                int val = va_arg(args, int);
+                unsigned int mag = (val < 0) ? (unsigned int)(-(long)val) : (unsigned int)val;
+                char buf[16];
+                int len = fmt_u32(buf, mag, 0);
+                int sign = (val < 0) ? 1 : 0;
+                for (int i = len + sign; i < width && !left; i++) putchar(pad);
+                if (sign) putchar('-');
+                print_string(buf);
+                for (int i = len + sign; i < width && left; i++) putchar(' ');
+                break;
+            }
+            case 'u': {
+                char buf[16];
+                int len = fmt_u32(buf, va_arg(args, unsigned int), (unsigned int)zero ? (unsigned int)width : 0);
+                for (int i = len; i < width && !left; i++) putchar(' ');
+                print_string(buf);
+                for (int i = len; i < width && left; i++) putchar(' ');
+                break;
+            }
+            case 'x':
+            case 'X':
+            case 'p': {
+                const char *digits = (*ptr == 'X') ? "0123456789ABCDEF" : "0123456789abcdef";
+                unsigned int val = va_arg(args, unsigned int);
+                char buf[12];
+                for (int i = 0; i < 8; i++)
+                    buf[i] = digits[(val >> ((7 - i) * 4)) & 0xF];
+                buf[8] = '\0';
+                for (int i = 8; i < width && !left; i++) putchar(pad);
+                print_string(buf);
+                for (int i = 8; i < width && left; i++) putchar(' ');
+                break;
+            }
+            case '%':
+                putchar('%');
+                break;
+            default:
+                putchar('%');
+                putchar(*ptr);
         }
     }
 

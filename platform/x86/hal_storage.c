@@ -60,10 +60,10 @@ static unsigned int kstrlen(const char *s) {
 }
 
 static void fat_normalize(const char *src, char *dest83) {
-    int i, j = 0;
-    for (i = 0; i < 8; i++) dest83[j++] = ' ';
-    for (i = 0; i < 3; i++) dest83[8 + i] = ' ';
+    int i, j;
+    for (i = 0; i < 11; i++) dest83[i] = ' ';
     i = 0;
+    j = 0;
     while (src[i] && src[i] != '.' && j < 8) {
         char c = src[i++];
         if (c >= 'a' && c <= 'z') c -= 32;

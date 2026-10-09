@@ -33,9 +33,23 @@ init_fat12:
 
 extern disk_read_sector
 extern disk_write_sector
+extern floppy_read_sector
+extern floppy_write_sector
 
+; The volume this kernel boots lives on the floppy controller (-fda), not
+; on the ATA primary channel, so sector I/O goes through the FDC driver by
+; default. Define PLATFORM_X86_DISK_ATA to route back to the ATA PIO driver
+; on hardware that actually has a disk on the primary channel.
+%ifdef PLATFORM_X86_DISK_ATA
 fat12_read_sector:
     jmp disk_read_sector
 
 fat12_write_sector:
     jmp disk_write_sector
+%else
+fat12_read_sector:
+    jmp floppy_read_sector
+
+fat12_write_sector:
+    jmp floppy_write_sector
+%endif
