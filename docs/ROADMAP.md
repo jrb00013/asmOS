@@ -20,6 +20,21 @@ QEMU now prints, in order: `DEBUG:LOADER_START`, `DEBUG:KERNEL_LOADED`,
 protected-mode handoff into the real C kernel entry point (`_kernel_start`)
 all work.
 
+**Round 3 update: the interactive shell now works against a live QEMU, and
+the FAT12 filesystem is verified end-to-end — `ls`, `cat`, `mkdir`, `cd`,
+`pwd` all operate on the real 1.44MB floppy via a new DMA-mode 82077 FDC
+driver.** Round 2's "interactive shell unexercised" gap is closed: a QMP probe
+(`tests/integration/shell_fs_check.py`) types real PS/2 keystrokes into a
+booted QEMU, reads the VGA buffer back, and asserts the shell lists the FAT12
+volume, dumps a file, creates and enters a directory, and returns to root.
+Getting there surfaced the final missing piece of the I/O stack: `disk/os.img`
+is a floppy, and the kernel was still reading it through an ATA PIO driver on
+the primary channel — there is no ATA disk behind `-fda`, so reads returned
+garbage. A real floppy controller driver (`boot/arch_x86/floppy.asm`) now
+handles sector I/O in DMA mode through 8237 channel 2, and `fat_normalize()`
+had a stale `j`-index bug that made every file lookup fail. See "What changed
+in round 3" below.
+
 ## Current state (this branch)
 
 - **Scheduler / context switch** — fixed. `task_yield_asm`/`run_scheduler_asm`
@@ -41,7 +56,15 @@ all work.
   `mkdir`. The PS2 HAL (`platform/ps2/hal_storage.c`) does a real
   `opendir`/`readdir`/`stat` walk instead of returning an empty list, and
   tracks a cwd-relative memory-card path so the same shell commands work
-  the same way there.
+  the same way there. Round 3 verified these commands live in QEMU (see
+  "What changed in round 3").
+- **Floppy disk I/O** — new in round 3. `boot/arch_x86/floppy.asm` is a
+  DMA-mode 82077 driver (8237 channel 2, bounce buffer at `0x8000`) that
+  reads and writes the 1.44MB boot volume; `boot/fat12.asm` now routes
+  sector I/O through it by default instead of the ATA PIO driver, which had
+  no disk behind it under `-fda`. An `interrupt_init()`/IDT pass also lands
+  before the scheduler so the first exception no longer vectors into
+  SeaBIOS's 16-bit IVT and double-faults.
 - **Network clients** — `telnet_client()` now drives an actual
   request/response loop (drain incoming, block for a line via
   `plat_read_line`, send it, drain the reply) instead of printing "type via
@@ -98,6 +121,50 @@ auto-detected CHS geometry instead of trusting this image's actual FAT12 BPB
 silently landing on the wrong physical sectors as a result. `disk/os.img` is
 a floppy-formatted FAT12 volume; it needs `-fda`, not `-drive if=ide`.
 
+## What changed in round 3: live-shell verification + the floppy driver
+
+Round 2 closed the boot chain but the shell had never been driven. A QMP-based
+probe (`/tmp/opencode/probe.py` during development, now
+`tests/integration/shell_fs_check.py`) boots QEMU with a unix-socket QMP
+monitor, feeds real PS/2 keystrokes, reads the VGA text buffer back, and
+checks the shell output. The first run exposed that FAT12 reads were returning
+garbage: the kernel's sector I/O went through `fat12_read_sector ->
+disk_read_sector`, an ATA PIO driver on the primary channel — but `disk/os.img`
+is a floppy on the FDC. Fixing this was a stack of FDC bugs, each found by
+decoding QEMU's `fdc_ioport*` trace events:
+
+1. **The FDC was never DMA'd, and reset was on the wrong port.** The reset
+   pulse was written to `0x3F6` (a read-only disk-change register) instead of
+   the DOR `0x3F2`, and the DOR "motor on" value was wrong (see below), so
+   the drive never spun up and every seek hung BUSY.
+2. **DOR motor bit.** QEMU's DOR puts motor-enable for drive 0 in bit 4
+   (`0x10`), not bit 0 — `0x01` is the drive-select low bit, so the original
+   code selected drive 1 and never turned on a motor.
+3. **8237 channel 2 was misprogrammed.** Page register is `0x81` (writing
+   `0x0A` as a page masked the channel instead), the channel needed masking
+   while the address/count/mode registers were loaded then unmasked, and the
+   mode bytes (single-mode read/write = `0x46`/`0x4A`) had been mislabeled
+   verify-mode values (`0x1A`/`0x16`).
+4. **Command encoding.** READ/WRITE DATA opcodes are `0x06`/`0x05`; MFM/MT/SK
+   forms are `0xE6`/`0xC5`. OR-ing the flags into `0x00` (`0xE0`/`0xC0`)
+   yields an undefined opcode that QEMU logs as "unimplemented command".
+5. **Parameter order/count.** READ DATA consumes eight parameters — `HD, C,
+   H, R, N, EOT, GPL, DTL` — not seven with C first. The wrong order left the
+   controller waiting for the wrong number of bytes and never reaching the
+   data phase.
+6. **CHS and head packing.** Head is packed into `HD` (`(head << 2) |
+   drive`) and handed as its own `H` parameter; the old code passed the head
+   number standalone, which addressed drive 1.
+7. **`fat_normalize()` index bug.** The 11-byte name buffer was pre-filled
+   with spaces via a running `j`, leaving `j` at 8 when the name-copy loop
+   started — so filenames were never copied and `cat`/`cd` could never match
+   an entry (and `mkdir testdir` created `.TES`). Fixed the padding to index
+   independently of `j`.
+
+Result: the integration suite now boots the image in real QEMU, reaches
+`DEBUG:KERNEL_START`, and verifies `pwd`, `ls`, `cat`, `mkdir`, `cd`, nested
+`pwd`, empty-directory `ls`, and `cd ..` all through the live shell.
+
 ## What's still open
 
 - **HAL parity is command-surface parity, not behavioral parity.** The new
@@ -107,14 +174,6 @@ a floppy-formatted FAT12 volume; it needs `-fda`, not `-drive if=ide`.
   `plat_reboot()` actually resets a real console. That remains a real gap:
   closing it needs either PCSX2/real hardware access, or a much heavier
   simulation harness.
-- **The kernel shell's actual interactive behavior past `_kernel_start` was
-  not exercised beyond confirming `kernel_main()` starts running** (QEMU run
-  headlessly with `-display none` and no keyboard input attached — the
-  shell's `plat_read_line` presumably blocks waiting for input, which is
-  expected/correct behavior for an interactive shell, not a hang). Driving
-  actual shell commands (the new `cd`/`mkdir`/`ftp`/`telnet` behavior from
-  round 1) through a live QEMU session — e.g. via QEMU's monitor/serial
-  console fed a scripted keystroke stream — is real follow-up work.
 - **FTP/telnet protocol behavior is unverified end-to-end.** The underlying
   transport (`src/net/udp.c`) is this project's own best-effort,
   non-blocking, single-packet-oriented stream — not a real TCP stack. The
