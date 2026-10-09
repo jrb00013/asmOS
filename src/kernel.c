@@ -19,6 +19,9 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include "arch_x86.h"
+#ifndef PLATFORM_PS2
+#include "interrupts.h"
+#endif
 
 #ifndef PLATFORM_PS2
 // VGA text buffer starts at 0xB8000
@@ -38,6 +41,15 @@ static struct {
 // Enhanced kernel entry point with PS2 optimizations
 void kernel_main(void) {
     plat_init();
+#ifndef PLATFORM_PS2
+    /* Install the IDT and remap the 8259s before anything can raise an
+     * interrupt. SeaBIOS leaves IDTR pointing at its real-mode IVT, whose
+     * entries are 16-bit far pointers rather than 32-bit gates — with IF
+     * set and no LIDT ever executed, the first interrupt or exception
+     * vectors into that garbage, double-faults, and resets the machine
+     * before the shell ever runs. */
+    interrupt_init();
+#endif
     subsys_register_all();
     kprint("ASMOS Kernel v3.0 - Physical Console Edition\n");
 #ifndef PLATFORM_PS2
