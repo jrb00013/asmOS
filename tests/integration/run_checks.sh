@@ -27,4 +27,11 @@ echo "PASS: no shell stub messages"
 
 bash tests/integration/boot_qemu.sh
 
+if python3 tests/integration/shell_fs_check.py; then
+    :
+else
+    echo "FAIL: interactive shell / FS check"
+    exit 1
+fi
+
 echo "=== All integration checks passed ==="
